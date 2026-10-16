@@ -6,65 +6,91 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Sound Catcher">
-<meta name="theme-color" content="#fff7e6">
+<meta name="theme-color" content="#ffe08a">
 <meta name="description" content="Sound Catcher: поймай любой звук и поиграй с ним">
 <title>Sound Catcher</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎧%3C/text%3E%3C/svg%3E">
 <style>
-:root{--bg:#fff7e6;--ink:#2b2340;--rec:#ff4d6d;--card:#ffffff;--ok:#2ec4b6}
-@media (prefers-color-scheme:dark){:root{--bg:#1d1730;--ink:#fff3dc;--card:#2d2547}}
+:root{--ink:#3b2a6b;--rec:#ff3d71;--recd:#c01f4d;--ok:#22c7a9;--okd:#139479;--sun:#ffd23f;--sund:#d9a400}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html,body{margin:0}
-body{min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5vh;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);overflow-x:hidden;touch-action:manipulation}
-button{font-family:inherit}
+body{min-height:100vh;min-height:100dvh;color:var(--ink);font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,-apple-system,sans-serif;font-weight:700;
+background:radial-gradient(circle at 12% 8%,#fff6b8 0,transparent 38%),radial-gradient(circle at 92% 22%,#ffc2e6 0,transparent 40%),radial-gradient(circle at 20% 95%,#b6f0e0 0,transparent 42%),linear-gradient(170deg,#ffe58f,#ffb8d9 55%,#a9d8ff);
+background-attachment:fixed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);overflow-x:hidden;touch-action:manipulation;overscroll-behavior:none}
+button{font-family:inherit;font-weight:800}
+.logo{font-size:26px;letter-spacing:1px;text-shadow:0 3px 0 rgba(255,255,255,.7)}
+.logo b:nth-child(4n+1){color:#ff3d71}.logo b:nth-child(4n+2){color:#ff9f1c}.logo b:nth-child(4n+3){color:#22b8cf}.logo b:nth-child(4n){color:#7c4dff}
 .stage{position:relative;width:min(62vw,270px);aspect-ratio:1;transition:width .3s}
-body.ready .stage{width:min(40vw,170px)}
+body.ready .stage{width:min(38vw,160px)}
 .stage svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.track{fill:none;stroke:rgba(128,128,128,.25);stroke-width:5}
-.prog{fill:none;stroke:var(--rec);stroke-width:5;stroke-linecap:round;stroke-dasharray:301.6;stroke-dashoffset:301.6}
-#rec{position:absolute;inset:9%;border:0;border-radius:50%;background:var(--rec);color:#fff;font-size:min(18vw,84px);cursor:pointer;box-shadow:0 9px 0 #c93552;transition:transform .08s,box-shadow .08s;display:flex;align-items:center;justify-content:center;padding:0}
-body.ready #rec{font-size:min(11vw,52px);box-shadow:0 6px 0 #c93552}
-#rec:active{transform:translateY(7px);box-shadow:0 2px 0 #c93552}
-#rec.on{animation:pulse .8s infinite;background:#222;box-shadow:0 9px 0 #000}
+.track{fill:none;stroke:rgba(255,255,255,.8);stroke-width:6}
+.prog{fill:none;stroke:#7c4dff;stroke-width:6;stroke-linecap:round;stroke-dasharray:301.6;stroke-dashoffset:301.6}
+#rec{position:absolute;inset:9%;border:6px solid #fff;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7fa3,var(--rec) 60%);color:#fff;font-size:min(18vw,84px);cursor:pointer;
+box-shadow:0 10px 0 var(--recd),0 16px 24px rgba(120,20,60,.3);transition:transform .08s,box-shadow .08s;display:flex;align-items:center;justify-content:center;padding:0;animation:idle 2s ease-in-out infinite}
+body.ready #rec{font-size:min(10vw,48px);animation:none;box-shadow:0 6px 0 var(--recd),0 10px 16px rgba(120,20,60,.25)}
+#rec:active{transform:translateY(8px);box-shadow:0 2px 0 var(--recd)}
+#rec.on{animation:pulse .7s infinite;background:#3b2a6b;box-shadow:0 10px 0 #1f1440}
 #rec.on:before{content:"";width:34%;height:34%;background:#fff;border-radius:10px}
 #rec.on span{display:none}
-@keyframes pulse{50%{transform:scale(1.06)}}
-#msg{min-height:1.4em;font-size:16px;opacity:.75;text-align:center;padding:0 12px;max-width:340px}
-#fx{display:none;flex-direction:column;align-items:center;gap:16px;width:100%}
+@keyframes pulse{50%{transform:scale(1.07)}}
+@keyframes idle{50%{transform:scale(1.04) rotate(-2deg)}}
+#msg{min-height:42px;display:flex;align-items:center;justify-content:center;font-size:17px;text-align:center;padding:8px 18px;max-width:340px;background:rgba(255,255,255,.85);border-radius:999px;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+#eq{display:none;gap:6px;height:34px;align-items:center}
+body.recording #eq{display:flex}
+#eq i{width:8px;border-radius:4px;background:var(--rec);animation:eq .6s ease-in-out infinite alternate}
+#eq i:nth-child(2){background:#ff9f1c;animation-delay:.1s}#eq i:nth-child(3){background:#22b8cf;animation-delay:.2s}
+#eq i:nth-child(4){background:#7c4dff;animation-delay:.3s}#eq i:nth-child(5){background:#2ec4b6;animation-delay:.15s}
+@keyframes eq{from{height:6px}to{height:32px}}
+#fx{display:none;flex-direction:column;align-items:center;gap:14px;width:100%}
 #fx.show{display:flex}
-.row{display:flex;align-items:center;gap:12px;width:min(100%,380px)}
-#play{flex:0 0 72px;height:72px;border-radius:50%;border:0;background:var(--ok);color:#fff;font-size:34px;box-shadow:0 6px 0 #1f9a8e;cursor:pointer;padding:0 0 0 4px}
-#play.st{padding:0}
-#play:active{transform:translateY(5px);box-shadow:0 1px 0 #1f9a8e}
-#wave{flex:1;min-width:0;height:72px;background:var(--card);border-radius:20px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:min(100%,380px)}
-.t{aspect-ratio:1;border:4px solid transparent;border-radius:22px;font-size:min(10vw,40px);background:var(--card);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s;padding:0}
-.t:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
-.t.sel{border-color:var(--ink);transform:scale(1.05)}
+.row{display:flex;align-items:center;gap:10px;width:min(100%,360px)}
+.rb{flex:0 0 auto;border-radius:50%;border:5px solid #fff;color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+#play{width:76px;height:76px;font-size:34px;background:var(--ok);box-shadow:0 7px 0 var(--okd);padding-left:4px}
+#play.st{padding-left:0}
+#share{width:60px;height:60px;font-size:26px;background:var(--sun);box-shadow:0 6px 0 var(--sund)}
+.rb:active{transform:translateY(5px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
+#wave{flex:1;min-width:0;height:76px;background:#fff;border-radius:22px;box-shadow:0 5px 0 rgba(0,0,0,.1)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;width:min(100%,340px)}
+.t{aspect-ratio:1;border:5px solid #fff;border-radius:28px;font-size:min(12vw,50px);background:var(--c);cursor:pointer;box-shadow:0 7px 0 var(--d);transition:transform .1s;padding:0}
+.t:active{transform:translateY(5px);box-shadow:0 2px 0 var(--d)}
+.t.sel{transform:scale(1.07);box-shadow:0 7px 0 var(--d),0 0 0 5px var(--ink)}
+.t.sel.wig{animation:wig .35s ease-in-out infinite alternate}
+@keyframes wig{from{transform:scale(1.07) rotate(-5deg)}to{transform:scale(1.12) rotate(5deg)}}
+.t[data-id=orig]{--c:#ffd23f;--d:#d9a400}.t[data-id=echo]{--c:#4cc9f0;--d:#2a9cc0}.t[data-id=warp]{--c:#b57bff;--d:#8a4fd6}
+.t[data-id=low]{--c:#8fd14f;--d:#5fa02a}.t[data-id=high]{--c:#ff8fab;--d:#d4607d}.t[data-id=rev]{--c:#ff9f43;--d:#d17314}
+.t[data-id=robot]{--c:#5eead4;--d:#2fb59f}.t[data-id=trem]{--c:#ff6b6b;--d:#cf3f3f}.t[data-id=ufo]{--c:#7c83ff;--d:#4f56d6}
 .bounce{animation:bn .4s}
-@keyframes bn{40%{transform:scale(1.15) rotate(-6deg)}}
-#gate{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;text-align:center}
+@keyframes bn{40%{transform:scale(1.2) rotate(-6deg)}}
+.note{position:fixed;pointer-events:none;font-size:26px;z-index:20;animation:fly .9s ease-out forwards}
+@keyframes fly{from{transform:translate(-50%,-50%) scale(.6);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.3);opacity:0}}
+#gate{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;
+background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-gradient(circle at 90% 25%,#ffc2e6 0,transparent 42%),linear-gradient(170deg,#ffe58f,#ffb8d9 55%,#a9d8ff)}
 #gate.hide{display:none}
-#allow{width:min(55vw,220px);aspect-ratio:1;border:0;border-radius:50%;background:var(--rec);color:#fff;font-size:min(18vw,84px);box-shadow:0 10px 0 #c93552;cursor:pointer;animation:pulse 1.2s infinite;padding:0}
-#allow:active{transform:translateY(8px);box-shadow:0 2px 0 #c93552}
-#gtxt{font-size:18px;max-width:330px;line-height:1.45}
+#gate .logo{font-size:36px}
+#allow{width:min(52vw,210px);aspect-ratio:1;border:6px solid #fff;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7fa3,var(--rec) 60%);color:#fff;font-size:min(18vw,80px);box-shadow:0 10px 0 var(--recd);cursor:pointer;animation:pulse 1.2s infinite;padding:0}
+#allow:active{transform:translateY(8px);box-shadow:0 2px 0 var(--recd)}
+#gtxt{font-size:19px;max-width:330px;line-height:1.4;background:rgba(255,255,255,.85);border-radius:24px;padding:12px 18px}
 </style>
 </head>
 <body>
 <div id="gate">
+  <div class="logo"><b>S</b><b>o</b><b>u</b><b>n</b><b>d</b> <b>C</b><b>a</b><b>t</b><b>c</b><b>h</b><b>e</b><b>r</b></div>
   <button id="allow" aria-label="Разрешить микрофон">🎤</button>
-  <div id="gtxt">Нажми, чтобы разрешить микрофон</div>
+  <div id="gtxt">Нажми на кнопку и разреши микрофон. Тогда можно ловить звуки!</div>
 </div>
 
 <div class="stage">
   <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="48"/><circle class="prog" id="prog" cx="50" cy="50" r="48"/></svg>
   <button id="rec" aria-label="Запись"><span>🎤</span></button>
 </div>
-<div id="msg">Нажми и поймай звук!</div>
+<div id="eq"><i></i><i></i><i></i><i></i><i></i></div>
+<div id="msg">Нажми на красную кнопку! 👆</div>
 <div id="fx">
   <div class="row">
-    <button id="play" aria-label="Играть">▶</button>
+    <button id="play" class="rb" aria-label="Играть">▶</button>
     <canvas id="wave"></canvas>
+    <button id="share" class="rb" aria-label="Поделиться">📤</button>
   </div>
   <div class="grid" id="grid"></div>
 </div>
@@ -72,17 +98,18 @@ body.ready #rec{font-size:min(11vw,52px);box-shadow:0 6px 0 #c93552}
 <script>
 (function(){
 'use strict';
-var MAX=15000, MIN_DUR=0.25, BARS=44;
+var MAX=15000, MIN_DUR=0.25, BARS=40;
 var EFFECTS=[
-  {id:'orig',e:'👂'},{id:'echo',e:'🏔️'},{id:'warp',e:'🌀'},{id:'low',e:'🐘'},
-  {id:'high',e:'🐭'},{id:'rev',e:'⏪'},{id:'robot',e:'🤖'},{id:'trem',e:'🚁'}
+  {id:'orig',e:'👂'},{id:'echo',e:'🏔️'},{id:'warp',e:'🌀'},
+  {id:'low',e:'🐘'},{id:'high',e:'🐭'},{id:'rev',e:'⏪'},
+  {id:'robot',e:'🤖'},{id:'trem',e:'🚁'},{id:'ufo',e:'👽'}
 ];
 var $=function(id){return document.getElementById(id)};
 var rec=$('rec'),prog=$('prog'),fx=$('fx'),msg=$('msg'),grid=$('grid'),gate=$('gate'),gtxt=$('gtxt'),
-    playBtn=$('play'),wave=$('wave');
+    playBtn=$('play'),shareBtn=$('share'),wave=$('wave'),body=document.body;
 
 var ctx=null,buffer=null,revBuffer=null,peaks=[],current='orig',stopFn=null,stream=null,mr=null,
-    chunks=[],tStart=0,recRaf=0,recTimer=0,state='idle',playRaf=0,silent=null,gen=0;
+    chunks=[],tStart=0,recRaf=0,recTimer=0,state='idle',playRaf=0,silent=null,gen=0,cache={key:'',blob:null};
 
 /* ---------- helpers ---------- */
 function ac(){
@@ -93,8 +120,22 @@ function ac(){
 function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
 function bounce(el){el.classList.remove('bounce');void el.offsetWidth;el.classList.add('bounce')}
 function say(t){msg.textContent=t}
+function burst(el){
+  try{
+    var r=el.getBoundingClientRect(),icons=['🎵','🎶','✨','⭐'];
+    for(var i=0;i<6;i++){
+      var s=document.createElement('span');
+      s.className='note';s.textContent=icons[i%4];
+      s.style.left=(r.left+r.width/2)+'px';s.style.top=(r.top+r.height/2)+'px';
+      s.style.setProperty('--dx',(Math.random()*180-90)+'px');
+      s.style.setProperty('--dy',(-90-Math.random()*110)+'px');
+      body.appendChild(s);
+      setTimeout((function(x){return function(){try{x.remove()}catch(e){}}})(s),950);
+    }
+  }catch(e){}
+}
 
-/* iOS: тихий зацикленный звук, чтобы Web Audio играл и при выключенном беззвучном режиме */
+/* iOS: тихий зацикленный звук, чтобы звук играл даже при беззвучном режиме */
 function silentOn(){
   try{
     if(!silent){
@@ -119,12 +160,12 @@ function errText(e){
   var n=e&&e.name, inFrame=false;
   try{inFrame=window.top!==window.self}catch(x){inFrame=true}
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'||!window.isSecureContext){
-    return 'Этот браузер не умеет записывать звук 😕 Открой сайт в Safari или Chrome по обычной ссылке (https).';
+    return 'Тут не получится записать звук 😕 Открой сайт в Safari или Chrome (не внутри мессенджера).';
   }
   if(n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError'){
     return inFrame
-      ? 'Микрофон здесь заблокирован 🙈 Открой ссылку отдельно, в Safari или Chrome (не внутри другого приложения).'
-      : 'Микрофон не разрешён 🙈 Нажми ещё раз и выбери «Разрешить». Если окна нет: Настройки → Safari → Микрофон → «Спрашивать» или «Разрешить».';
+      ? 'Микрофон тут заблокирован 🙈 Открой ссылку отдельно в Safari или Chrome.'
+      : 'Микрофон не разрешён 🙈 Нажми ещё раз и выбери «Разрешить». Если окна нет: Настройки → Safari → Микрофон → «Спрашивать».';
   }
   if(n==='NotFoundError'||n==='OverconstrainedError')return 'Микрофон не найден 🔍';
   if(n==='NotReadableError'||n==='AbortError')return 'Микрофон занят другим приложением 📵 Закрой его и попробуй снова.';
@@ -149,7 +190,7 @@ function decode(ab){
   });
 }
 
-/* ---------- gate (разрешение микрофона) ---------- */
+/* ---------- разрешение микрофона ---------- */
 function showGate(t){gtxt.textContent=t;gate.classList.remove('hide')}
 $('allow').onclick=function(){
   ac();
@@ -160,7 +201,7 @@ $('allow').onclick=function(){
   getStream().then(function(){
     releaseStream();
     gate.classList.add('hide');
-    say('Нажми и поймай звук!');
+    say('Нажми на красную кнопку! 👆');
   }).catch(function(e){gtxt.textContent=errText(e)});
 };
 try{
@@ -171,11 +212,11 @@ try{
   }
 }catch(e){}
 
-/* ---------- эффекты ---------- */
+/* ---------- плитки эффектов ---------- */
 EFFECTS.forEach(function(f){
   var b=document.createElement('button');
   b.className='t';b.textContent=f.e;b.setAttribute('data-id',f.id);b.setAttribute('aria-label',f.id);
-  b.onclick=function(){select(f.id);play();bounce(b)};
+  b.onclick=function(){select(f.id);play();bounce(b);burst(b)};
   grid.appendChild(b);
 });
 function select(id){
@@ -205,8 +246,9 @@ function startRec(){
     silentOff();
     mr.start();
     state='rec';tStart=performance.now();
-    rec.classList.add('on');fx.classList.remove('show');document.body.classList.remove('ready');
-    say('Говори! 🎧');vib(30);
+    rec.classList.add('on');body.classList.add('recording');
+    fx.classList.remove('show');body.classList.remove('ready');
+    say('Говори! Я слушаю 🎧');vib(30);
     recTimer=setTimeout(stopRec,MAX);
     tick();
   }).catch(function(e){
@@ -226,18 +268,19 @@ function stopRec(){
   try{if(mr.state!=='inactive')mr.stop()}catch(e){onStopped(mr)}
 }
 function reset(){
-  rec.classList.remove('on');prog.style.strokeDashoffset=301.6;state='idle';
+  rec.classList.remove('on');body.classList.remove('recording');
+  prog.style.strokeDashoffset=301.6;state='idle';
 }
 function onStopped(m){
   releaseStream();
-  rec.classList.remove('on');prog.style.strokeDashoffset=301.6;
+  rec.classList.remove('on');body.classList.remove('recording');
+  prog.style.strokeDashoffset=301.6;
   var my=++gen;
   say('Секунду… ⏳');
   var blob=new Blob(chunks,{type:(m&&m.mimeType)||'audio/mp4'});
   blob.arrayBuffer().then(decode).then(function(buf){
     if(my!==gen)return;
     if(buf.duration<MIN_DUR){reset();say('Слишком коротко! Попробуй ещё 🙂');return}
-    /* нормализация громкости */
     var peak=0,c,i,d;
     for(c=0;c<buf.numberOfChannels;c++){d=buf.getChannelData(c);for(i=0;i<d.length;i++){var a=d[i]<0?-d[i]:d[i];if(a>peak)peak=a}}
     var gain=peak>0.001?Math.min(0.9/peak,6):1;
@@ -245,15 +288,16 @@ function onStopped(m){
     buffer=buf;
     revBuffer=ac().createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate);
     for(c=0;c<buf.numberOfChannels;c++){
-      var src=buf.getChannelData(c),dst=revBuffer.getChannelData(c),L=src.length;
-      for(i=0;i<L;i++)dst[i]=src[L-1-i];
+      var s=buf.getChannelData(c),t=revBuffer.getChannelData(c),L=s.length;
+      for(i=0;i<L;i++)t[i]=s[L-1-i];
     }
     makePeaks();
+    cache={key:'',blob:null};
     select('orig');
-    document.body.classList.add('ready');fx.classList.add('show');
+    body.classList.add('ready');fx.classList.add('show');
     drawWave(0);
     reset();
-    say(peak<0.01?'Тихо… попробуй ближе к звуку 🔊':'Поймали! Жми картинки ✨');
+    say(peak<0.01?'Тихо… поднеси ближе к звуку 🔊':'Поймали! Жми на картинки ✨');
     vib(20);
     play();
   }).catch(function(){
@@ -274,19 +318,19 @@ function makePeaks(){
   }
   peaks=peaks.map(function(p){return p/mx});
 }
+var COLORS=['#ff3d71','#ff9f1c','#ffd23f','#22c7a9','#22b8cf','#7c4dff'];
 function drawWave(p){
   var dpr=window.devicePixelRatio||1,w=wave.clientWidth,h=wave.clientHeight;
   if(!w||!h)return;
   if(wave.width!==Math.round(w*dpr)){wave.width=Math.round(w*dpr);wave.height=Math.round(h*dpr)}
   var g=wave.getContext('2d');
   g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-  var cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink').trim()||'#333',ok=cs.getPropertyValue('--ok').trim()||'#2ec4b6';
-  var n=peaks.length||BARS,bw=(w-16)/n,i;
+  var n=peaks.length||BARS,bw=(w-20)/n,i;
   for(i=0;i<n;i++){
-    var v=peaks.length?peaks[i]:0.1,bh=Math.max(4,v*(h-20));
-    g.globalAlpha=(i/n<p)?1:0.35;
-    g.fillStyle=(i/n<p)?ok:ink;
-    var x=8+i*bw+bw*0.15,r=Math.min(bw*0.35,3);
+    var v=peaks.length?peaks[i]:0.1,bh=Math.max(6,v*(h-20)),played=(i/n<p);
+    g.globalAlpha=played?1:0.3;
+    g.fillStyle=COLORS[i%COLORS.length];
+    var x=10+i*bw+bw*0.15,r=Math.min(bw*0.35,3);
     g.beginPath();
     if(g.roundRect)g.roundRect(x,(h-bh)/2,bw*0.7,bh,r);else g.rect(x,(h-bh)/2,bw*0.7,bh);
     g.fill();
@@ -295,37 +339,27 @@ function drawWave(p){
 }
 window.addEventListener('resize',function(){if(buffer)drawWave(0)});
 
-/* ---------- воспроизведение ---------- */
-function setPlayUI(on){
-  playBtn.textContent=on?'⏹':'▶';
-  playBtn.classList.toggle('st',on);
-}
-function stopPlay(){
-  cancelAnimationFrame(playRaf);
-  if(stopFn){var f=stopFn;stopFn=null;f()}
-  setPlayUI(false);
-  if(buffer)drawWave(0);
-}
-function play(){
-  if(!buffer)return;
-  stopPlay();
-  var c=ac();silentOn();
-  var t0=c.currentTime+0.03,rate=1,id=current;
-  var master=c.createGain();master.gain.value=1;master.connect(c.destination);
+/* ---------- звуковой граф (общий для плеера и сохранения) ---------- */
+function build(c,dest,id){
+  var master=c.createGain();master.gain.value=1;master.connect(dest);
   var src=c.createBufferSource();
   src.buffer=id==='rev'?revBuffer:buffer;
-  var nodes=[master],oscs=[];
+  var nodes=[master],oscs=[],rate=1;
   function node(n){nodes.push(n);return n}
   function osc(type,freq){var o=c.createOscillator();o.type=type;o.frequency.value=freq;oscs.push(o);return o}
-
   if(id==='echo'){
     var dry=node(c.createGain()),wet=node(c.createGain()),dl=node(c.createDelay(1)),fb=node(c.createGain());
     wet.gain.value=0.7;dl.delayTime.value=0.28;fb.gain.value=0.55;
     src.connect(dry);dry.connect(master);
     src.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(master);
   }else if(id==='warp'){
-    var lfo=osc('sine',2.5),amt=node(c.createGain());
-    amt.gain.value=0.35;lfo.connect(amt);amt.connect(src.playbackRate);
+    var l1=osc('sine',2.5),a1=node(c.createGain());
+    a1.gain.value=0.35;l1.connect(a1);a1.connect(src.playbackRate);
+    src.connect(master);
+  }else if(id==='ufo'){
+    rate=1.25;src.playbackRate.value=rate;
+    var l2=osc('sine',7),a2=node(c.createGain());
+    a2.gain.value=0.3;l2.connect(a2);a2.connect(src.playbackRate);
     src.connect(master);
   }else if(id==='robot'){
     var rg=node(c.createGain()),o2=osc('square',55),bo=node(c.createGain());
@@ -341,40 +375,135 @@ function play(){
     src.playbackRate.value=rate;
     src.connect(master);
   }
-  var dur=buffer.duration/rate;
-  oscs.forEach(function(o){o.start(t0)});
-  src.start(t0);
+  return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate};
+}
+function tailOf(id){return id==='echo'?3:(id==='warp'?0.7:0.3)}
 
-  var dead=false;
+/* ---------- воспроизведение ---------- */
+function setPlayUI(on){
+  playBtn.textContent=on?'⏹':'▶';
+  playBtn.classList.toggle('st',on);
+  Array.prototype.forEach.call(grid.children,function(c){
+    c.classList.toggle('wig',on&&c.getAttribute('data-id')===current);
+  });
+}
+function stopPlay(){
+  cancelAnimationFrame(playRaf);
+  if(stopFn){var f=stopFn;stopFn=null;f()}
+  setPlayUI(false);
+  if(buffer)drawWave(0);
+}
+function play(){
+  if(!buffer)return;
+  stopPlay();
+  var c=ac();silentOn();
+  var id=current,t0=c.currentTime+0.03;
+  var g=build(c,c.destination,id);
+  g.oscs.forEach(function(o){o.start(t0)});
+  g.src.start(t0);
+  var dur=buffer.duration/g.rate,dead=false;
   function kill(){
     if(dead)return;dead=true;
-    try{master.gain.cancelScheduledValues(c.currentTime);master.gain.setTargetAtTime(0,c.currentTime,0.02)}catch(e){}
+    try{g.master.gain.cancelScheduledValues(c.currentTime);g.master.gain.setTargetAtTime(0,c.currentTime,0.02)}catch(e){}
     setTimeout(function(){
-      try{src.stop()}catch(e){}
-      oscs.forEach(function(o){try{o.stop()}catch(e){}});
-      try{src.disconnect()}catch(e){}
-      oscs.forEach(function(o){try{o.disconnect()}catch(e){}});
-      nodes.forEach(function(n){try{n.disconnect()}catch(e){}});
+      try{g.src.stop()}catch(e){}
+      g.oscs.forEach(function(o){try{o.stop()}catch(e){}});
+      try{g.src.disconnect()}catch(e){}
+      g.oscs.forEach(function(o){try{o.disconnect()}catch(e){}});
+      g.nodes.forEach(function(n){try{n.disconnect()}catch(e){}});
     },120);
   }
-  stopFn=kill;
+  var cleanup=setTimeout(kill,(dur+tailOf(id))*1000+100);
+  stopFn=function(){clearTimeout(cleanup);kill()};
   setPlayUI(true);
-  var cleanup=setTimeout(kill,(dur+(id==='echo'?3:0.3))*1000+100);
-  var prevKill=kill;
-  stopFn=function(){clearTimeout(cleanup);prevKill()};
   (function loop(){
     var p=(c.currentTime-t0)/dur;
     if(p<0)p=0;
-    if(p>=1){drawWave(1);setPlayUI(false);
-      /* эхо дозвучивает само, плеер уже свободен */
-      return}
+    if(p>=1){drawWave(1);setPlayUI(false);return}
     drawWave(p);
     playRaf=requestAnimationFrame(loop);
   })();
+  setTimeout(prerender,120);
 }
 playBtn.onclick=function(){
   if(playBtn.classList.contains('st')){stopPlay()}
-  else{play();bounce(playBtn)}
+  else{play();bounce(playBtn);burst(playBtn)}
+};
+
+/* ---------- сохранить / поделиться ---------- */
+var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+if(!OC)shareBtn.style.display='none';
+function key(){return gen+':'+current}
+function renderWav(){
+  return new Promise(function(res,rej){
+    try{
+      var id=current,sr=buffer.sampleRate,ch=buffer.numberOfChannels;
+      var rate=id==='low'?0.6:id==='high'?1.8:id==='ufo'?1.25:1;
+      var len=Math.ceil((buffer.duration/rate+tailOf(id))*sr);
+      var oc=new OC(ch,len,sr);
+      var g=build(oc,oc.destination,id);
+      g.oscs.forEach(function(o){o.start(0)});
+      g.src.start(0);
+      oc.oncomplete=function(e){res(e.renderedBuffer)};
+      var p=oc.startRendering();
+      if(p&&p.then)p.then(res,rej);
+    }catch(e){rej(e)}
+  });
+}
+function encodeWav(ab){
+  var ch=ab.numberOfChannels,len=ab.length,sr=ab.sampleRate,size=len*ch*2;
+  var b=new ArrayBuffer(44+size),v=new DataView(b);
+  var w=function(o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+size,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,ch,true);v.setUint32(24,sr,true);
+  v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);
+  w(36,'data');v.setUint32(40,size,true);
+  var data=[],o=44,i,c;
+  for(c=0;c<ch;c++)data.push(ab.getChannelData(c));
+  for(i=0;i<len;i++){
+    for(c=0;c<ch;c++){
+      var s=Math.max(-1,Math.min(1,data[c][i]));
+      v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);o+=2;
+    }
+  }
+  return new Blob([b],{type:'audio/wav'});
+}
+function prerender(){
+  if(!buffer||!OC)return;
+  var k=key();
+  if(cache.key===k)return;
+  cache={key:k,blob:null};
+  renderWav().then(function(rb){if(cache.key===k)cache.blob=encodeWav(rb)}).catch(function(){});
+}
+function download(blob){
+  try{
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='sound-catcher.wav';
+    body.appendChild(a);a.click();
+    setTimeout(function(){try{a.remove();URL.revokeObjectURL(a.href)}catch(e){}},1500);
+    say('Звук сохранён 💾');
+  }catch(e){say('Не вышло сохранить 😕')}
+}
+function send(blob){
+  var file=null;
+  try{file=new File([blob],'sound-catcher.wav',{type:'audio/wav'})}catch(e){}
+  if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:'Sound Catcher 🎧'}).then(function(){say('Отправлено! 🎉')}).catch(function(e){
+      if(e&&e.name==='AbortError')return;
+      if(e&&e.name==='NotAllowedError'){say('Готово! Нажми 📤 ещё раз 🎁');return}
+      download(blob);
+    });
+  }else download(blob);
+}
+shareBtn.onclick=function(){
+  if(!buffer)return;
+  bounce(shareBtn);
+  var k=key();
+  if(cache.key===k&&cache.blob){send(cache.blob);return}
+  say('Готовлю звук… 🎁');
+  renderWav().then(function(rb){
+    var b=encodeWav(rb);cache={key:k,blob:b};send(b);
+  }).catch(function(){say('Не вышло сохранить 😕')});
 };
 
 /* ---------- жизненный цикл ---------- */
