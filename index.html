@@ -60,6 +60,18 @@ body.recording #eq{display:flex}
 .t[data-id=orig]{--c:#ffd23f;--d:#d9a400}.t[data-id=echo]{--c:#4cc9f0;--d:#2a9cc0}.t[data-id=warp]{--c:#b57bff;--d:#8a4fd6}
 .t[data-id=low]{--c:#8fd14f;--d:#5fa02a}.t[data-id=high]{--c:#ff8fab;--d:#d4607d}.t[data-id=rev]{--c:#ff9f43;--d:#d17314}
 .t[data-id=robot]{--c:#5eead4;--d:#2fb59f}.t[data-id=trem]{--c:#ff6b6b;--d:#cf3f3f}.t[data-id=ufo]{--c:#7c83ff;--d:#4f56d6}
+.lab{display:flex;flex-direction:column;gap:10px;width:min(100%,360px)}
+.chips{display:flex;gap:10px}
+.chip{flex:1;border:4px solid #fff;border-radius:999px;background:#fff;color:var(--ink);font-size:16px;padding:10px 6px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.12);transition:transform .08s}
+.chip:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.chip.on{background:#7c4dff;color:#fff;box-shadow:0 5px 0 #5632c4}
+.panel{display:none;background:#fff;border-radius:24px;padding:8px 10px 10px;box-shadow:0 5px 0 rgba(0,0,0,.1)}
+.panel.open{display:block;animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.92);opacity:0}}
+.panel canvas{display:block;width:100%;height:84px}
+.cap{font-size:14px;text-align:center;opacity:.8;margin-top:4px}
+.ends{display:flex;justify-content:space-between;font-size:13px;opacity:.8;margin-top:2px}
+#fact{display:none;font-size:15px;text-align:center;background:#fff6c9;border-radius:18px;padding:8px 12px;border:3px dashed #ffb300}
 .bounce{animation:bn .4s}
 @keyframes bn{40%{transform:scale(1.2) rotate(-6deg)}}
 .note{position:fixed;pointer-events:none;font-size:26px;z-index:20;animation:fly .9s ease-out forwards}
@@ -91,6 +103,22 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
     <button id="play" class="rb" aria-label="Играть">▶</button>
     <canvas id="wave"></canvas>
     <button id="share" class="rb" aria-label="Поделиться">📤</button>
+  </div>
+  <div class="lab">
+    <div class="chips">
+      <button class="chip" id="chipWave" aria-pressed="false">〰️ Волна</button>
+      <button class="chip" id="chipSpec" aria-pressed="false">📊 Спектр</button>
+    </div>
+    <div class="panel" id="pWave">
+      <canvas id="scope"></canvas>
+      <div class="cap">〰️ Волна: чем она выше, тем громче звук</div>
+    </div>
+    <div class="panel" id="pSpec">
+      <canvas id="spec"></canvas>
+      <div class="ends"><span>🐘 низкие звуки</span><span>🐭 высокие звуки</span></div>
+      <div class="cap">📊 Спектр: из каких «нот» состоит звук</div>
+    </div>
+    <div id="fact"></div>
   </div>
   <div class="grid" id="grid"></div>
 </div>
@@ -212,20 +240,121 @@ try{
   }
 }catch(e){}
 
+/* ---------- визуализаторы: волна и спектр ---------- */
+var HINT={
+  orig:'👂 Как было: звук без изменений',
+  echo:'🏔️ Эхо: звук возвращается, как в горах',
+  warp:'🌀 Варп: звук качается вверх и вниз',
+  low:'🐘 Медленнее: звук ниже и толще',
+  high:'🐭 Быстрее: звук выше и тоньше',
+  rev:'⏪ Задом наперёд: слушаем с конца',
+  robot:'🤖 Робот: звук дрожит очень быстро',
+  trem:'🚁 Вертолёт: громкость мигает, как лопасти',
+  ufo:'👽 НЛО: высокий звук с дрожанием'
+};
+var FACT={
+  orig:'Так выглядит твой звук без эффектов. Запомни картинку!',
+  echo:'Волна повторяется несколько раз, и каждый раз тише.',
+  warp:'Спектр качается влево и вправо: тон «плавает».',
+  low:'Волна растянулась, а спектр уехал влево: звук стал ниже.',
+  high:'Волна сжалась, а спектр уехал вправо: звук стал выше.',
+  rev:'Тот же звук, но волна развёрнута назад.',
+  robot:'Волна «рубится» на кусочки, поэтому голос как у робота.',
+  trem:'Волна то растёт, то уменьшается: громкость мигает.',
+  ufo:'Спектр дрожит и сдвинут вправо, как у летающей тарелки.'
+};
+var scopeCv=$('scope'),specCv=$('spec'),factEl=$('fact');
+var vizAn=null,tdata=null,fdata=null,vizOn={wave:false,spec:false};
+function fit(cv){
+  var dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+  if(!w||!h)return null;
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr)}
+  var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  return {g:g,w:w,h:h};
+}
+function drawScope(){
+  var f=fit(scopeCv);if(!f)return;
+  var g=f.g,w=f.w,h=f.h,i;
+  var gr=g.createLinearGradient(0,0,w,0);
+  gr.addColorStop(0,'#ff3d71');gr.addColorStop(0.35,'#ff9f1c');gr.addColorStop(0.65,'#22c7a9');gr.addColorStop(1,'#7c4dff');
+  g.lineWidth=4;g.lineCap='round';g.lineJoin='round';g.strokeStyle=gr;
+  g.beginPath();
+  if(vizAn){
+    if(!tdata||tdata.length!==vizAn.fftSize)tdata=new Uint8Array(vizAn.fftSize);
+    vizAn.getByteTimeDomainData(tdata);
+    var N=Math.min(1024,tdata.length>>1),s=0;
+    for(i=0;i<N;i++){if(tdata[i]<128&&tdata[i+1]>=128){s=i;break}}
+    for(i=0;i<N;i++){
+      var y=h/2-((tdata[s+i]-128)/128)*(h/2-6)*1.6;
+      y=Math.max(4,Math.min(h-4,y));
+      var x=i/(N-1)*w;
+      if(i)g.lineTo(x,y);else g.moveTo(x,y);
+    }
+  }else{g.moveTo(6,h/2);g.lineTo(w-6,h/2)}
+  g.stroke();
+}
+function drawSpec(){
+  var f=fit(specCv);if(!f)return;
+  var g=f.g,w=f.w,h=f.h,N=28,bw=w/N,i,j,sr=0,cnt=0,ok=!!vizAn;
+  if(ok){
+    if(!fdata||fdata.length!==vizAn.frequencyBinCount)fdata=new Uint8Array(vizAn.frequencyBinCount);
+    vizAn.getByteFrequencyData(fdata);sr=vizAn.context.sampleRate;cnt=fdata.length;
+  }
+  for(i=0;i<N;i++){
+    var v=0.05;
+    if(ok){
+      var f1=100*Math.pow(80,i/N),f2=100*Math.pow(80,(i+1)/N);
+      var b1=Math.floor(f1/(sr/2)*cnt),b2=Math.max(b1+1,Math.ceil(f2/(sr/2)*cnt)),m=0;
+      for(j=b1;j<b2&&j<cnt;j++){if(fdata[j]>m)m=fdata[j]}
+      v=Math.max(0.05,m/255);
+    }
+    var bh=v*(h-8);
+    g.fillStyle='hsl('+Math.round(i/N*280)+',90%,58%)';
+    g.beginPath();
+    if(g.roundRect)g.roundRect(i*bw+2,h-bh-2,bw-4,bh,4);else g.rect(i*bw+2,h-bh-2,bw-4,bh);
+    g.fill();
+  }
+}
+function drawViz(){
+  if(vizOn.wave)drawScope();
+  if(vizOn.spec)drawSpec();
+}
+function updateFact(){
+  var any=vizOn.wave||vizOn.spec;
+  factEl.style.display=any?'block':'none';
+  factEl.textContent='💡 '+(FACT[current]||'');
+}
+function setPanel(k,on){
+  vizOn[k]=on;
+  var pn=$(k==='wave'?'pWave':'pSpec'),ch=$(k==='wave'?'chipWave':'chipSpec');
+  pn.classList.toggle('open',on);ch.classList.toggle('on',on);
+  ch.setAttribute('aria-pressed',on?'true':'false');
+  updateFact();drawViz();
+}
+$('chipWave').onclick=function(){
+  var on=!vizOn.wave;setPanel('wave',on);vib(10);
+  if(on)say('Это волна! Чем она выше, тем громче звук 🌊');
+};
+$('chipSpec').onclick=function(){
+  var on=!vizOn.spec;setPanel('spec',on);vib(10);
+  if(on)say('Это спектр! Слева басы, справа писк 🎼');
+};
+
 /* ---------- плитки эффектов ---------- */
 EFFECTS.forEach(function(f){
   var b=document.createElement('button');
   b.className='t';b.textContent=f.e;b.setAttribute('data-id',f.id);b.setAttribute('aria-label',f.id);
-  b.onclick=function(){select(f.id);play();bounce(b);burst(b)};
+  b.onclick=function(){select(f.id);say(HINT[f.id]);play();bounce(b);burst(b)};
   grid.appendChild(b);
 });
 function select(id){
-  current=id;
+  current=id;updateFact();
   Array.prototype.forEach.call(grid.children,function(c){
     c.classList.toggle('sel',c.getAttribute('data-id')===id);
   });
 }
 select('orig');
+setPanel('wave',true);
 
 /* ---------- запись ---------- */
 rec.onclick=function(){
@@ -337,7 +466,7 @@ function drawWave(p){
   }
   g.globalAlpha=1;
 }
-window.addEventListener('resize',function(){if(buffer)drawWave(0)});
+window.addEventListener('resize',function(){if(buffer)drawWave(0);drawViz()});
 
 /* ---------- звуковой граф (общий для плеера и сохранения) ---------- */
 function build(c,dest,id){
@@ -388,7 +517,7 @@ function setPlayUI(on){
   });
 }
 function stopPlay(){
-  cancelAnimationFrame(playRaf);
+  cancelAnimationFrame(playRaf);vizAn=null;drawViz();
   if(stopFn){var f=stopFn;stopFn=null;f()}
   setPlayUI(false);
   if(buffer)drawWave(0);
@@ -398,7 +527,8 @@ function play(){
   stopPlay();
   var c=ac();silentOn();
   var id=current,t0=c.currentTime+0.03;
-  var g=build(c,c.destination,id);
+  var an=c.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;an.connect(c.destination);
+  var g=build(c,an,id);g.nodes.push(an);vizAn=an;
   g.oscs.forEach(function(o){o.start(t0)});
   g.src.start(t0);
   var dur=buffer.duration/g.rate,dead=false;
@@ -416,12 +546,20 @@ function play(){
   var cleanup=setTimeout(kill,(dur+tailOf(id))*1000+100);
   stopFn=function(){clearTimeout(cleanup);kill()};
   setPlayUI(true);
+  var endAt=t0+dur+tailOf(id),done=false;
   (function loop(){
     var p=(c.currentTime-t0)/dur;
     if(p<0)p=0;
-    if(p>=1){drawWave(1);setPlayUI(false);return}
-    drawWave(p);
-    playRaf=requestAnimationFrame(loop);
+    if(!done){
+      if(p>=1){done=true;drawWave(1);setPlayUI(false)}else drawWave(p);
+    }
+    if(c.currentTime<endAt&&vizAn===an){
+      drawViz();
+      playRaf=requestAnimationFrame(loop);
+    }else{
+      if(vizAn===an)vizAn=null;
+      drawViz();
+    }
   })();
   setTimeout(prerender,120);
 }
