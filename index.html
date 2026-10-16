@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sound Catcher">
+<meta name="theme-color" content="#fff7e6">
+<meta name="description" content="Sound Catcher: поймай любой звук и поиграй с ним">
+<title>Sound Catcher</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎧%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#fff7e6;--ink:#2b2340;--rec:#ff4d6d;--card:#ffffff;--ok:#2ec4b6}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1730;--ink:#fff3dc;--card:#2d2547}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0}
+body{min-height:100vh;min-height:100dvh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5vh;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px calc(env(safe-area-inset-bottom,0px) + 12px);overflow-x:hidden;touch-action:manipulation}
+button{font-family:inherit}
+.stage{position:relative;width:min(62vw,270px);aspect-ratio:1;transition:width .3s}
+body.ready .stage{width:min(40vw,170px)}
+.stage svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.track{fill:none;stroke:rgba(128,128,128,.25);stroke-width:5}
+.prog{fill:none;stroke:var(--rec);stroke-width:5;stroke-linecap:round;stroke-dasharray:301.6;stroke-dashoffset:301.6}
+#rec{position:absolute;inset:9%;border:0;border-radius:50%;background:var(--rec);color:#fff;font-size:min(18vw,84px);cursor:pointer;box-shadow:0 9px 0 #c93552;transition:transform .08s,box-shadow .08s;display:flex;align-items:center;justify-content:center;padding:0}
+body.ready #rec{font-size:min(11vw,52px);box-shadow:0 6px 0 #c93552}
+#rec:active{transform:translateY(7px);box-shadow:0 2px 0 #c93552}
+#rec.on{animation:pulse .8s infinite;background:#222;box-shadow:0 9px 0 #000}
+#rec.on:before{content:"";width:34%;height:34%;background:#fff;border-radius:10px}
+#rec.on span{display:none}
+@keyframes pulse{50%{transform:scale(1.06)}}
+#msg{min-height:1.4em;font-size:16px;opacity:.75;text-align:center;padding:0 12px;max-width:340px}
+#fx{display:none;flex-direction:column;align-items:center;gap:16px;width:100%}
+#fx.show{display:flex}
+.row{display:flex;align-items:center;gap:12px;width:min(100%,380px)}
+#play{flex:0 0 72px;height:72px;border-radius:50%;border:0;background:var(--ok);color:#fff;font-size:34px;box-shadow:0 6px 0 #1f9a8e;cursor:pointer;padding:0 0 0 4px}
+#play.st{padding:0}
+#play:active{transform:translateY(5px);box-shadow:0 1px 0 #1f9a8e}
+#wave{flex:1;min-width:0;height:72px;background:var(--card);border-radius:20px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:min(100%,380px)}
+.t{aspect-ratio:1;border:4px solid transparent;border-radius:22px;font-size:min(10vw,40px);background:var(--card);cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s;padding:0}
+.t:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.t.sel{border-color:var(--ink);transform:scale(1.05)}
+.bounce{animation:bn .4s}
+@keyframes bn{40%{transform:scale(1.15) rotate(-6deg)}}
+#gate{position:fixed;inset:0;z-index:10;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;text-align:center}
+#gate.hide{display:none}
+#allow{width:min(55vw,220px);aspect-ratio:1;border:0;border-radius:50%;background:var(--rec);color:#fff;font-size:min(18vw,84px);box-shadow:0 10px 0 #c93552;cursor:pointer;animation:pulse 1.2s infinite;padding:0}
+#allow:active{transform:translateY(8px);box-shadow:0 2px 0 #c93552}
+#gtxt{font-size:18px;max-width:330px;line-height:1.45}
+</style>
+</head>
+<body>
+<div id="gate">
+  <button id="allow" aria-label="Разрешить микрофон">🎤</button>
+  <div id="gtxt">Нажми, чтобы разрешить микрофон</div>
+</div>
+
+<div class="stage">
+  <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="48"/><circle class="prog" id="prog" cx="50" cy="50" r="48"/></svg>
+  <button id="rec" aria-label="Запись"><span>🎤</span></button>
+</div>
+<div id="msg">Нажми и поймай звук!</div>
+<div id="fx">
+  <div class="row">
+    <button id="play" aria-label="Играть">▶</button>
+    <canvas id="wave"></canvas>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var MAX=15000, MIN_DUR=0.25, BARS=44;
+var EFFECTS=[
+  {id:'orig',e:'👂'},{id:'echo',e:'🏔️'},{id:'warp',e:'🌀'},{id:'low',e:'🐘'},
+  {id:'high',e:'🐭'},{id:'rev',e:'⏪'},{id:'robot',e:'🤖'},{id:'trem',e:'🚁'}
+];
+var $=function(id){return document.getElementById(id)};
+var rec=$('rec'),prog=$('prog'),fx=$('fx'),msg=$('msg'),grid=$('grid'),gate=$('gate'),gtxt=$('gtxt'),
+    playBtn=$('play'),wave=$('wave');
+
+var ctx=null,buffer=null,revBuffer=null,peaks=[],current='orig',stopFn=null,stream=null,mr=null,
+    chunks=[],tStart=0,recRaf=0,recTimer=0,state='idle',playRaf=0,silent=null,gen=0;
+
+/* ---------- helpers ---------- */
+function ac(){
+  if(!ctx){var C=window.AudioContext||window.webkitAudioContext;ctx=new C();}
+  if(ctx.state==='suspended'||ctx.state==='interrupted'){try{ctx.resume()}catch(e){}}
+  return ctx;
+}
+function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
+function bounce(el){el.classList.remove('bounce');void el.offsetWidth;el.classList.add('bounce')}
+function say(t){msg.textContent=t}
+
+/* iOS: тихий зацикленный звук, чтобы Web Audio играл и при выключенном беззвучном режиме */
+function silentOn(){
+  try{
+    if(!silent){
+      var n=800,b=new Uint8Array(44+n*2),v=new DataView(b.buffer);
+      var w=function(o,s){for(var i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+      w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);
+      v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);
+      v.setUint32(28,16000,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+      w(36,'data');v.setUint32(40,n*2,true);
+      silent=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));
+      silent.loop=true;
+    }
+    var p=silent.play();if(p&&p.catch)p.catch(function(){});
+  }catch(e){}
+}
+function silentOff(){try{if(silent)silent.pause()}catch(e){}}
+
+function releaseStream(){
+  if(stream){try{stream.getTracks().forEach(function(t){t.stop()})}catch(e){}stream=null;}
+}
+function errText(e){
+  var n=e&&e.name, inFrame=false;
+  try{inFrame=window.top!==window.self}catch(x){inFrame=true}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'||!window.isSecureContext){
+    return 'Этот браузер не умеет записывать звук 😕 Открой сайт в Safari или Chrome по обычной ссылке (https).';
+  }
+  if(n==='NotAllowedError'||n==='SecurityError'||n==='PermissionDeniedError'){
+    return inFrame
+      ? 'Микрофон здесь заблокирован 🙈 Открой ссылку отдельно, в Safari или Chrome (не внутри другого приложения).'
+      : 'Микрофон не разрешён 🙈 Нажми ещё раз и выбери «Разрешить». Если окна нет: Настройки → Safari → Микрофон → «Спрашивать» или «Разрешить».';
+  }
+  if(n==='NotFoundError'||n==='OverconstrainedError')return 'Микрофон не найден 🔍';
+  if(n==='NotReadableError'||n==='AbortError')return 'Микрофон занят другим приложением 📵 Закрой его и попробуй снова.';
+  return 'Не получилось включить микрофон 😕 Попробуй ещё раз.';
+}
+function getStream(){
+  releaseStream();
+  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}})
+    .then(function(s){stream=s;return s});
+}
+function pickMime(){
+  if(typeof MediaRecorder==='undefined'||!MediaRecorder.isTypeSupported)return '';
+  var l=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+  for(var i=0;i<l.length;i++){try{if(MediaRecorder.isTypeSupported(l[i]))return l[i]}catch(e){}}
+  return '';
+}
+function decode(ab){
+  return new Promise(function(res,rej){
+    var p;
+    try{p=ac().decodeAudioData(ab,res,rej)}catch(e){rej(e);return}
+    if(p&&p.catch)p.catch(rej);
+  });
+}
+
+/* ---------- gate (разрешение микрофона) ---------- */
+function showGate(t){gtxt.textContent=t;gate.classList.remove('hide')}
+$('allow').onclick=function(){
+  ac();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
+    gtxt.textContent=errText(null);return;
+  }
+  gtxt.textContent='Жду разрешения… 👆';
+  getStream().then(function(){
+    releaseStream();
+    gate.classList.add('hide');
+    say('Нажми и поймай звук!');
+  }).catch(function(e){gtxt.textContent=errText(e)});
+};
+try{
+  if(navigator.permissions&&navigator.permissions.query){
+    navigator.permissions.query({name:'microphone'}).then(function(p){
+      if(p.state==='granted')gate.classList.add('hide');
+    }).catch(function(){});
+  }
+}catch(e){}
+
+/* ---------- эффекты ---------- */
+EFFECTS.forEach(function(f){
+  var b=document.createElement('button');
+  b.className='t';b.textContent=f.e;b.setAttribute('data-id',f.id);b.setAttribute('aria-label',f.id);
+  b.onclick=function(){select(f.id);play();bounce(b)};
+  grid.appendChild(b);
+});
+function select(id){
+  current=id;
+  Array.prototype.forEach.call(grid.children,function(c){
+    c.classList.toggle('sel',c.getAttribute('data-id')===id);
+  });
+}
+select('orig');
+
+/* ---------- запись ---------- */
+rec.onclick=function(){
+  if(state==='rec')stopRec();
+  else if(state==='idle')startRec();
+};
+function startRec(){
+  state='starting';
+  stopPlay();ac();
+  getStream().then(function(s){
+    var mime=pickMime();
+    chunks=[];
+    try{mr=mime?new MediaRecorder(s,{mimeType:mime}):new MediaRecorder(s)}
+    catch(e){mr=new MediaRecorder(s)}
+    mr.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+    var mine=mr;
+    mr.onstop=function(){onStopped(mine)};
+    silentOff();
+    mr.start();
+    state='rec';tStart=performance.now();
+    rec.classList.add('on');fx.classList.remove('show');document.body.classList.remove('ready');
+    say('Говори! 🎧');vib(30);
+    recTimer=setTimeout(stopRec,MAX);
+    tick();
+  }).catch(function(e){
+    state='idle';releaseStream();
+    showGate(errText(e));
+  });
+}
+function tick(){
+  var p=Math.min((performance.now()-tStart)/MAX,1);
+  prog.style.strokeDashoffset=301.6*(1-p);
+  if(state==='rec')recRaf=requestAnimationFrame(tick);
+}
+function stopRec(){
+  if(state!=='rec')return;
+  state='proc';
+  clearTimeout(recTimer);cancelAnimationFrame(recRaf);
+  try{if(mr.state!=='inactive')mr.stop()}catch(e){onStopped(mr)}
+}
+function reset(){
+  rec.classList.remove('on');prog.style.strokeDashoffset=301.6;state='idle';
+}
+function onStopped(m){
+  releaseStream();
+  rec.classList.remove('on');prog.style.strokeDashoffset=301.6;
+  var my=++gen;
+  say('Секунду… ⏳');
+  var blob=new Blob(chunks,{type:(m&&m.mimeType)||'audio/mp4'});
+  blob.arrayBuffer().then(decode).then(function(buf){
+    if(my!==gen)return;
+    if(buf.duration<MIN_DUR){reset();say('Слишком коротко! Попробуй ещё 🙂');return}
+    /* нормализация громкости */
+    var peak=0,c,i,d;
+    for(c=0;c<buf.numberOfChannels;c++){d=buf.getChannelData(c);for(i=0;i<d.length;i++){var a=d[i]<0?-d[i]:d[i];if(a>peak)peak=a}}
+    var gain=peak>0.001?Math.min(0.9/peak,6):1;
+    if(gain!==1){for(c=0;c<buf.numberOfChannels;c++){d=buf.getChannelData(c);for(i=0;i<d.length;i++)d[i]*=gain}}
+    buffer=buf;
+    revBuffer=ac().createBuffer(buf.numberOfChannels,buf.length,buf.sampleRate);
+    for(c=0;c<buf.numberOfChannels;c++){
+      var src=buf.getChannelData(c),dst=revBuffer.getChannelData(c),L=src.length;
+      for(i=0;i<L;i++)dst[i]=src[L-1-i];
+    }
+    makePeaks();
+    select('orig');
+    document.body.classList.add('ready');fx.classList.add('show');
+    drawWave(0);
+    reset();
+    say(peak<0.01?'Тихо… попробуй ближе к звуку 🔊':'Поймали! Жми картинки ✨');
+    vib(20);
+    play();
+  }).catch(function(){
+    if(my!==gen)return;
+    reset();say('Не получилось записать 😕 Попробуй ещё раз');
+  });
+}
+
+/* ---------- волна ---------- */
+function makePeaks(){
+  peaks=[];
+  var d=buffer.getChannelData(0),step=Math.max(1,Math.floor(d.length/BARS));
+  var mx=0.0001,i,j;
+  for(i=0;i<BARS;i++){
+    var m=0;
+    for(j=i*step;j<Math.min((i+1)*step,d.length);j++){var a=d[j]<0?-d[j]:d[j];if(a>m)m=a}
+    peaks.push(m);if(m>mx)mx=m;
+  }
+  peaks=peaks.map(function(p){return p/mx});
+}
+function drawWave(p){
+  var dpr=window.devicePixelRatio||1,w=wave.clientWidth,h=wave.clientHeight;
+  if(!w||!h)return;
+  if(wave.width!==Math.round(w*dpr)){wave.width=Math.round(w*dpr);wave.height=Math.round(h*dpr)}
+  var g=wave.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  var cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue('--ink').trim()||'#333',ok=cs.getPropertyValue('--ok').trim()||'#2ec4b6';
+  var n=peaks.length||BARS,bw=(w-16)/n,i;
+  for(i=0;i<n;i++){
+    var v=peaks.length?peaks[i]:0.1,bh=Math.max(4,v*(h-20));
+    g.globalAlpha=(i/n<p)?1:0.35;
+    g.fillStyle=(i/n<p)?ok:ink;
+    var x=8+i*bw+bw*0.15,r=Math.min(bw*0.35,3);
+    g.beginPath();
+    if(g.roundRect)g.roundRect(x,(h-bh)/2,bw*0.7,bh,r);else g.rect(x,(h-bh)/2,bw*0.7,bh);
+    g.fill();
+  }
+  g.globalAlpha=1;
+}
+window.addEventListener('resize',function(){if(buffer)drawWave(0)});
+
+/* ---------- воспроизведение ---------- */
+function setPlayUI(on){
+  playBtn.textContent=on?'⏹':'▶';
+  playBtn.classList.toggle('st',on);
+}
+function stopPlay(){
+  cancelAnimationFrame(playRaf);
+  if(stopFn){var f=stopFn;stopFn=null;f()}
+  setPlayUI(false);
+  if(buffer)drawWave(0);
+}
+function play(){
+  if(!buffer)return;
+  stopPlay();
+  var c=ac();silentOn();
+  var t0=c.currentTime+0.03,rate=1,id=current;
+  var master=c.createGain();master.gain.value=1;master.connect(c.destination);
+  var src=c.createBufferSource();
+  src.buffer=id==='rev'?revBuffer:buffer;
+  var nodes=[master],oscs=[];
+  function node(n){nodes.push(n);return n}
+  function osc(type,freq){var o=c.createOscillator();o.type=type;o.frequency.value=freq;oscs.push(o);return o}
+
+  if(id==='echo'){
+    var dry=node(c.createGain()),wet=node(c.createGain()),dl=node(c.createDelay(1)),fb=node(c.createGain());
+    wet.gain.value=0.7;dl.delayTime.value=0.28;fb.gain.value=0.55;
+    src.connect(dry);dry.connect(master);
+    src.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(master);
+  }else if(id==='warp'){
+    var lfo=osc('sine',2.5),amt=node(c.createGain());
+    amt.gain.value=0.35;lfo.connect(amt);amt.connect(src.playbackRate);
+    src.connect(master);
+  }else if(id==='robot'){
+    var rg=node(c.createGain()),o2=osc('square',55),bo=node(c.createGain());
+    rg.gain.value=0;bo.gain.value=1.6;
+    o2.connect(rg.gain);src.connect(rg);rg.connect(bo);bo.connect(master);
+  }else if(id==='trem'){
+    var tg=node(c.createGain()),o3=osc('sine',9),am=node(c.createGain());
+    tg.gain.value=0.5;am.gain.value=0.5;
+    o3.connect(am);am.connect(tg.gain);src.connect(tg);tg.connect(master);
+  }else{
+    if(id==='low')rate=0.6;
+    if(id==='high')rate=1.8;
+    src.playbackRate.value=rate;
+    src.connect(master);
+  }
+  var dur=buffer.duration/rate;
+  oscs.forEach(function(o){o.start(t0)});
+  src.start(t0);
+
+  var dead=false;
+  function kill(){
+    if(dead)return;dead=true;
+    try{master.gain.cancelScheduledValues(c.currentTime);master.gain.setTargetAtTime(0,c.currentTime,0.02)}catch(e){}
+    setTimeout(function(){
+      try{src.stop()}catch(e){}
+      oscs.forEach(function(o){try{o.stop()}catch(e){}});
+      try{src.disconnect()}catch(e){}
+      oscs.forEach(function(o){try{o.disconnect()}catch(e){}});
+      nodes.forEach(function(n){try{n.disconnect()}catch(e){}});
+    },120);
+  }
+  stopFn=kill;
+  setPlayUI(true);
+  var cleanup=setTimeout(kill,(dur+(id==='echo'?3:0.3))*1000+100);
+  var prevKill=kill;
+  stopFn=function(){clearTimeout(cleanup);prevKill()};
+  (function loop(){
+    var p=(c.currentTime-t0)/dur;
+    if(p<0)p=0;
+    if(p>=1){drawWave(1);setPlayUI(false);
+      /* эхо дозвучивает само, плеер уже свободен */
+      return}
+    drawWave(p);
+    playRaf=requestAnimationFrame(loop);
+  })();
+}
+playBtn.onclick=function(){
+  if(playBtn.classList.contains('st')){stopPlay()}
+  else{play();bounce(playBtn)}
+};
+
+/* ---------- жизненный цикл ---------- */
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){
+    if(state==='rec')stopRec();
+    stopPlay();silentOff();
+  }
+});
+})();
+</script>
+</body>
+</html>
