@@ -199,7 +199,14 @@ body.playing .t.sel .em{animation-duration:calc(var(--du,1.8s)*.4)}
 .panel canvas{display:block;width:100%;height:84px}
 #scope,#spec{height:110px}
 #pic{height:170px;background:#0c122d;border-radius:14px}
-#roll{height:140px;background:#f6f2ff;border-radius:14px}
+#roll{height:170px;background:#f6f2ff;border-radius:14px;touch-action:none;cursor:ns-resize}
+.panel #roll{height:170px}
+.ntools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.nb{min-height:48px;border:3px solid #fff;border-radius:16px;background:var(--vio);color:#fff;font-size:19px;padding:2px 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:0 4px 0 var(--viod)}
+.nb small{font-size:11px;font-weight:700}
+.nb:active{transform:translateY(3px);box-shadow:0 1px 0 var(--viod)}
+#nDice{background:#ff9f1c;box-shadow:0 4px 0 #d17314}
+body.world .nb{border-color:rgba(255,255,255,.4)}
 .cap{font-size:14px;text-align:center;opacity:.8;margin-top:4px}
 .ends{display:flex;justify-content:space-between;font-size:13px;opacity:.8;margin-top:2px}
 .pw{position:relative}
@@ -535,8 +542,14 @@ body.world #echoBox{display:flex}
     </div>
     <div class="panel" id="pNotes">
       <div class="now"><div id="nowNote">🎵</div><div id="keyTxt"></div></div>
-      <canvas id="roll"></canvas>
-      <div class="cap">⬆️ выше кубик — выше нота · 🏠 тональность — «домик» мелодии</div>
+      <canvas id="roll" aria-label="Ноты: потяни ноту вверх или вниз — звук изменится"></canvas>
+      <div class="ntools">
+        <button class="nb" id="nDice" aria-label="Случайная мелодия">🎲<small>мелодия</small></button>
+        <button class="nb" id="nDown" aria-label="Все ноты ниже">⬇️<small>ниже</small></button>
+        <button class="nb" id="nUp" aria-label="Все ноты выше">⬆️<small>выше</small></button>
+        <button class="nb" id="nReset" aria-label="Мелодия как была">↺<small>как было</small></button>
+      </div>
+      <div class="cap">👆 Потяни ноту вверх или вниз — звук правда изменится · 🏠 тональность — «домик» мелодии</div>
     </div>
     <div id="fact"></div>
   </div>
@@ -1039,11 +1052,18 @@ function stutter(b,s){
   }
   return out;
 }
-var prepCache={k:'',b:null};
+var prepCache={k:'',b:null},baseCache={k:'',b:null};
+/* запись с передвинутыми нотами (без правок — сама запись) */
+function baseBuf(){
+  var nk=noteKey();if(!nk)return buffer;
+  var k=gen+nk;
+  if(baseCache.k!==k||!baseCache.b)baseCache={k:k,b:applyNotes(buffer)};
+  return baseCache.b;
+}
 function srcBuf(){
-  var k=gen+':'+(cleanOn?1:0)+':'+lvlOf('parrot')+lvlOf('retro')+lvlOf('rev');
+  var k=gen+':'+(cleanOn?1:0)+':'+lvlOf('parrot')+lvlOf('retro')+lvlOf('rev')+noteKey();
   if(prepCache.k===k&&prepCache.b)return prepCache.b;
-  var b=buffer,s;
+  var b=baseBuf(),s;
   if((s=S('parrot')))b=stutter(b,s);
   if((s=S('retro')))b=crush(b,s);
   if((s=S('rev')))b=revChunks(b,s);
@@ -1145,7 +1165,7 @@ function build(c,dest,o){
   var wg=null,dg=null;
   if(MIX<1){
     wg=gain(MIX);cur.connect(wg);wg.connect(master);
-    var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(buffer):buffer;
+    var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(baseBuf()):baseBuf();
     if(o&&o.semis)ds.playbackRate.value=Math.pow(2,o.semis/12);
     dg=gain(1-MIX);ds.connect(dg);dg.connect(master);taps.push({s:ds,when:0});
   }else cur.connect(master);
@@ -1317,7 +1337,7 @@ var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
 if(!OC)shareBtn.style.display='none';
 function artistKey(){return AR.on?(':a'+artistCanvas().ver+'.'+artistSeed()+'.'+AR.influence+'.'+AR.blur):''}
 function mixKey(){return MIX<1?':m'+MIX.toFixed(2):''}
-function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()}
+function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()}
 function renderWav(vol){
   return new Promise(function(res,rej){
     try{
@@ -1593,21 +1613,31 @@ function analyse(rb,k){
     px[o]=col[0];px[o+1]=col[1];px[o+2]=col[2];px[o+3]=255;
   }
   cx.putImageData(img,0,0);
-  var pf=pitchTrack(d,sr),n=pf.length,mm=new Int16Array(n),runs=[],hist=[0,0,0,0,0,0,0,0,0,0,0,0],tot=0;
+  var pf=pitchTrack(d,sr);
+  return {k:k,dur:rb.duration,cv:cv,pf:pf,n:pf.length};
+}
+/* ровные ноты из высоты по кадрам: кусок ≥ 3 кадров одной ноты (один пропуск внутри прощается) */
+function runsOf(pf){
+  var n=pf.length,mm=new Int16Array(n),runs=[],i=0;
   for(i=0;i<n;i++)mm[i]=pf[i]>0?Math.round(12*Math.log2(pf[i]/440)+69):-1;
   i=0;
   while(i<n){
     if(mm[i]<0){i++;continue}
     var m0=mm[i],j2=i;
     while(j2+1<n&&(mm[j2+1]===m0||(mm[j2+1]<0&&j2+2<n&&mm[j2+2]===m0)))j2++;
-    if(j2-i+1>=3){runs.push({s:i,e:j2,m:m0});hist[((m0%12)+12)%12]+=j2-i+1;tot+=j2-i+1}
+    if(j2-i+1>=3)runs.push({s:i,e:j2,m:m0});
     i=j2+1;
   }
-  return {k:k,dur:rb.duration,cv:cv,pf:pf,n:n,runs:runs,key:tot>=6?keyOf(hist):null};
+  return runs;
+}
+function keyOfRuns(list){
+  var hist=[0,0,0,0,0,0,0,0,0,0,0,0],tot=0;
+  list.forEach(function(r){var l=r.e-r.s+1;hist[((r.m%12)+12)%12]+=l;tot+=l});
+  return tot>=6?keyOf(hist):null;
 }
 function needView(){
-  if(!buffer||!OC||!(vizOn.pic||vizOn.notes))return;
-  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey();
+  if(!buffer||!OC||!vizOn.pic)return;
+  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey();
   if(view&&view.k===k){drawViz();return}
   if(viewBusy===k)return;
   viewBusy=k;
@@ -1629,31 +1659,173 @@ function drawPic(){
   }
   if(playT>=0){g.fillRect(Math.min(1,playT/view.dur)*w-1,0,2,h)}
 }
+/* ---------- ноты записи: каждую можно потянуть вверх или вниз — звук правда меняется ----------
+   Ноты ищутся в записи до эффектов; сдвиг — сдвиг высоты куска записи без изменения длины.
+   Слон / Мышка / НЛО сдвигают всё на свои полутона — так и видно. */
+var NE={g:-1,c:-1,runs:null,n:0,hop:0.04,edits:{},drag:null,lo:0,hi:0,rh:0};
+function noteRuns(){
+  if(!buffer)return [];
+  if(NE.g!==gen){NE.g=gen;NE.edits={};NE.runs=null}
+  if(NE.c!==(cleanOn?1:0)){NE.c=cleanOn?1:0;NE.runs=null;NE.edits={}}   /* после «Чистого звука» ноты ищутся заново */
+  if(!NE.runs){
+    var sr=buffer.sampleRate,pf=pitchTrack(buffer.getChannelData(0),sr);
+    NE.hop=Math.round(sr*0.04)/sr;NE.n=Math.max(1,pf.length);NE.runs=runsOf(pf);
+  }
+  return NE.runs;
+}
+function noteKey(){
+  if(NE.g!==gen||NE.c!==(cleanOn?1:0)||!NE.runs)return '';
+  var k=Object.keys(NE.edits).filter(function(i){return NE.edits[i]}).sort(function(a,b){return a-b});
+  return k.length?':n'+(cleanOn?1:0)+k.map(function(i){return i+'='+NE.edits[i]}).join(','):'';
+}
+function noteRateSemis(){return Math.round(12*Math.log2(rateOf()))}
+/* что видно и слышно: исходная нота + сдвиг пальцем (+ сдвиг Слона/Мышки) */
+function noteShown(i){var r=NE.runs[i];return r.m+(NE.edits[i]||0)+noteRateSemis()}
+/* сдвиг высоты куска [i0, i1) на r раз без изменения длины: две читающие головки с плавной сменой (окно 50 мс) */
+function pshiftInto(x,y,i0,i1,r,sr){
+  var Wn=Math.round(sr*0.05),F=Math.round(sr*0.012),L=x.length,ph=0,dp=(1-r)/Wn,a=Math.max(0,i0-F),b=Math.min(L,i1+F),i;
+  function rd(p){if(p<0)p=0;var j=Math.floor(p),f=p-j;return j+1<L?x[j]*(1-f)+x[j+1]*f:(x[L-1]||0)}
+  for(i=a;i<b;i++){
+    var p2=ph+0.5;if(p2>=1)p2-=1;
+    var s1=Math.sin(Math.PI*ph),s2=Math.sin(Math.PI*p2),v=rd(i-ph*Wn)*s1*s1+rd(i-p2*Wn)*s2*s2;
+    var k=i<i0?(i-a)/F:(i>=i1?(b-i)/F:1);
+    y[i]=y[i]*(1-k)+v*k;
+    ph+=dp;ph-=Math.floor(ph);
+  }
+}
+function applyNotes(src){
+  var out=newBuf(src),sr=src.sampleRate,hop=Math.round(sr*NE.hop),c;
+  for(c=0;c<src.numberOfChannels;c++){
+    var x=src.getChannelData(c),y=out.getChannelData(c);y.set(x);
+    NE.runs.forEach(function(r,i){
+      var s=NE.edits[i];if(!s)return;
+      pshiftInto(x,y,r.s*hop,Math.min(x.length,(r.e+1)*hop),Math.pow(2,s/12),sr);
+    });
+  }
+  return out;
+}
+function noteChanged(){prepCache.k='';cache={key:'',blob:null};view=null;drawViz();needView()}
+/* короткий звук ноты, пока тянешь: слышно, куда приехала */
+function noteBeep(m){
+  try{
+    var c=ac(),o=c.createOscillator(),gn=c.createGain(),now=c.currentTime;
+    o.type='triangle';o.frequency.value=440*Math.pow(2,(m-69)/12);
+    gn.gain.setValueAtTime(0,now);gn.gain.linearRampToValueAtTime(0.16,now+0.012);gn.gain.exponentialRampToValueAtTime(0.0008,now+0.32);
+    o.connect(gn);gn.connect(c.destination);o.start(now);o.stop(now+0.34);
+    o.onended=function(){try{o.disconnect();gn.disconnect()}catch(e){}};
+  }catch(e){}
+}
+function nName(m){return RUN[((m%12)+12)%12]}
+/* ряд нот на экране: диапазон держится, пока палец тянет ноту */
+function noteRange(){
+  if(NE.drag)return;
+  var lo=1e9,hi=-1e9,i;
+  for(i=0;i<NE.runs.length;i++){var m=noteShown(i),m0=NE.runs[i].m+noteRateSemis();lo=Math.min(lo,m,m0);hi=Math.max(hi,m,m0)}
+  lo-=2;hi+=2;while(hi-lo<11){lo--;hi++}
+  NE.lo=lo;NE.hi=hi;
+}
 function drawNotes(){
   var f=fit($('roll')),nowEl=$('nowNote'),keyEl=$('keyTxt');
   if(!f)return;
-  var g=f.g,w=f.w,h=f.h;
+  var g=f.g,w=f.w,h=f.h,runs=noteRuns(),i;
   g.textAlign='center';g.fillStyle='#3b2a6b';g.font='700 14px sans-serif';
-  if(!view){g.fillText('🎼 Слушаю…',w/2,h/2);nowEl.textContent='⏳';nowEl.style.color='';nowEl.style.background='';keyEl.textContent='';return}
-  if(!view.runs.length){g.fillText('🌬️ Ровных нот нет — это шум или шорох',w/2,h/2);nowEl.textContent='🌬️';nowEl.style.color='';nowEl.style.background='';keyEl.textContent='';return}
-  var lo=1e9,hi=-1e9,lastLbl=-99;
-  view.runs.forEach(function(r){if(r.m<lo)lo=r.m;if(r.m>hi)hi=r.m});
-  lo-=1;hi+=1;while(hi-lo<9){lo--;hi++}
-  var rh=(h-8)/(hi-lo+1);
-  view.runs.forEach(function(r){
-    var x=r.s/view.n*w,rw=Math.max(4,(r.e-r.s+1)/view.n*w-1),y=h-4-(r.m-lo+1)*rh,pc=((r.m%12)+12)%12;
+  function none(t,ic){g.fillText(t,w/2,h/2);nowEl.textContent=ic;nowEl.style.color='';nowEl.style.background='';keyEl.textContent=''}
+  if(!buffer){none('🎼 Сначала поймай звук',' 🎵');return}
+  if(!runs.length){none('🌬️ Ровных нот нет — спой или свистни!','🌬️');return}
+  noteRange();
+  var lo=NE.lo,hi=NE.hi,rh=(h-8)/(hi-lo+1),rs=noteRateSemis();NE.rh=rh;
+  /* полоски-ступеньки: «До» каждой октавы чуть темнее */
+  for(i=lo;i<=hi;i++){if(((i%12)+12)%12===0){g.fillStyle='rgba(124,77,255,.08)';g.fillRect(0,h-4-(i-lo+1)*rh,w,rh)}}
+  var shown=[];
+  runs.forEach(function(r,k){
+    var m=NE.drag&&NE.drag.i===k?NE.drag.m:noteShown(k),m0=r.m+rs,
+        x=r.s/NE.n*w,rw=Math.max(6,(r.e-r.s+1)/NE.n*w-1),y=h-4-(m-lo+1)*rh,pc=((m%12)+12)%12;
+    shown.push({s:r.s,e:r.e,m:m});
+    /* где нота была: пунктирный след */
+    if(m!==m0){
+      var y0=h-4-(m0-lo+1)*rh;g.setLineDash([3,3]);g.strokeStyle='rgba(59,42,107,.45)';g.lineWidth=1.5;
+      g.beginPath();if(g.roundRect)g.roundRect(x,y0+1,rw,rh-2,4);else g.rect(x,y0+1,rw,rh-2);g.stroke();g.setLineDash([]);
+      g.strokeStyle='rgba(59,42,107,.35)';g.beginPath();g.moveTo(x+rw/2,y0+rh/2);g.lineTo(x+rw/2,y+rh/2);g.stroke();
+    }
     g.fillStyle='hsl('+pc*30+',85%,58%)';g.beginPath();
     if(g.roundRect)g.roundRect(x,y+1,rw,rh-2,4);else g.rect(x,y+1,rw,rh-2);
     g.fill();
-    if(rw>=16){g.fillStyle='#3b2a6b';g.font='800 10px sans-serif';g.fillText(RUN[pc],x+rw/2,y>12?y-2:y+rh+10)}
+    if(NE.drag&&NE.drag.i===k){g.strokeStyle='#3b2a6b';g.lineWidth=2.5;g.stroke()}
+    if(rw>=16||(NE.drag&&NE.drag.i===k)){g.fillStyle='#3b2a6b';g.font='800 10px sans-serif';g.fillText(RUN[pc],x+rw/2,y>12?y-2:y+rh+10)}
   });
-  keyEl.textContent=view.key?'🏠 '+RUN[view.key.k]+(view.key.maj?' мажор':' минор'):'';
-  var idx=playT>=0?Math.floor(playT/view.dur*view.n):-1,cur=null;
-  if(playT>=0){g.fillStyle='#3b2a6b';g.fillRect(Math.min(1,playT/view.dur)*w-1.5,0,3,h)}
-  view.runs.forEach(function(r){if(idx>=r.s&&idx<=r.e)cur=r});
+  var key=keyOfRuns(shown);
+  keyEl.textContent=key?'🏠 '+RUN[key.k]+(key.maj?' мажор':' минор'):'';
+  var idx=playFrac>=0?Math.floor(playFrac*NE.n):-1,cur=null;
+  if(playFrac>=0){g.fillStyle='#3b2a6b';g.fillRect(Math.min(1,playFrac)*w-1.5,0,3,h)}
+  shown.forEach(function(r){if(idx>=r.s&&idx<=r.e)cur=r});
   if(cur){var pc2=((cur.m%12)+12)%12;nowEl.textContent=RUN[pc2];nowEl.style.background='hsl('+pc2*30+',85%,62%)';nowEl.style.color='#fff'}
-  else{nowEl.textContent=(playT>=0&&playT<view.dur)?'…':'🎵';nowEl.style.background='';nowEl.style.color=''}
+  else{nowEl.textContent=playFrac>=0?'…':'🎵';nowEl.style.background='';nowEl.style.color=''}
 }
+/* палец на ноте: тянуть вверх-вниз (шаг — полутон); просто коснуться — играть с этой ноты; мимо нот — играть с этого места */
+function noteAt(e){
+  var cv=$('roll'),r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,w=r.width,h=r.height,best=-1,bd=1e9;
+  if(!NE.runs)return {i:-1,f:Math.max(0,Math.min(1,x/w))};
+  NE.runs.forEach(function(q,k){
+    var x0=q.s/NE.n*w,x1=x0+Math.max(6,(q.e-q.s+1)/NE.n*w);
+    if(x<x0-8||x>x1+8)return;
+    var yc=h-4-(noteShown(k)-NE.lo+0.5)*NE.rh,d=Math.abs(y-yc);
+    if(d<bd){bd=d;best=k}
+  });
+  return {i:bd<=Math.max(22,NE.rh*1.2)?best:-1,f:Math.max(0,Math.min(1,x/w)),y:e.clientY};
+}
+function noteStart(i){return Math.max(0,NE.runs[i].s/NE.n-0.01)}
+function noteDown(e){
+  if(!buffer||!noteRuns().length)return;
+  e.preventDefault();
+  var a=noteAt(e);
+  NE.press={i:a.i,f:a.f,y:e.clientY,moved:false};
+  if(a.i>=0){NE.drag={i:a.i,m:noteShown(a.i),m0:noteShown(a.i),y:e.clientY};try{$('roll').setPointerCapture(e.pointerId)}catch(x){}noteBeep(NE.drag.m);vib(6);drawNotes()}
+}
+function noteMove(e){
+  var D=NE.drag;if(!D)return;
+  var st=Math.round((D.y-e.clientY)/Math.max(8,NE.rh)),m=Math.max(NE.lo,Math.min(NE.hi,D.m0+st));
+  m=Math.max(D.m0-12,Math.min(D.m0+12,m));
+  if(m!==D.m){D.m=m;NE.press.moved=true;noteBeep(m);vib(4);drawNotes();say('🎵 '+nName(D.m0)+' → '+nName(m))}
+}
+function noteUp(){
+  var P=NE.press,D=NE.drag;NE.press=null;NE.drag=null;
+  if(!P)return;
+  if(D&&D.m!==D.m0){
+    var ed=(NE.edits[D.i]||0)+(D.m-D.m0);
+    if(ed)NE.edits[D.i]=ed;else delete NE.edits[D.i];
+    noteChanged();
+    say('🎶 Нота '+nName(D.m0)+' стала '+nName(D.m)+'! Слушай');
+    play(noteStart(D.i));return;
+  }
+  drawNotes();
+  play(P.i>=0?noteStart(P.i):P.f);
+}
+function noteSetAll(fn,msg,quiet){
+  var runs=noteRuns();if(!runs.length){if(!quiet)say('🌬️ Тут нет ровных нот — спой или свистни!');return false}
+  runs.forEach(function(r,i){var v=fn(r,i);if(v)NE.edits[i]=Math.max(-12,Math.min(12,v));else delete NE.edits[i]});
+  noteChanged();
+  if(!quiet){say(msg);vib(10);play()}
+  return true;
+}
+/* 🎲 мелодия: каждая нота прыгает на случайную ступень той же тональности (не дальше кварты) */
+function noteDice(rnd,quiet){
+  var r=rnd||Math.random,runs=noteRuns(),key=keyOfRuns(runs)||{k:((runs[0]?runs[0].m:60)%12+12)%12,maj:true},
+      sc=key.maj?[0,2,4,5,7,9,11]:[0,2,3,5,7,8,10];
+  return noteSetAll(function(q){
+    var cand=[],d;
+    for(d=-5;d<=5;d++){var pc=(((q.m+d-key.k)%12)+12)%12;if(sc.indexOf(pc)>=0&&d!==0)cand.push(d)}
+    return r()<0.2?0:cand[Math.floor(r()*cand.length)];
+  },'🎲 Новая мелодия в тональности '+RUN[key.k]+(key.maj?' мажор':' минор')+'!',quiet);
+}
+(function(){
+  var cv=$('roll');
+  cv.addEventListener('pointerdown',noteDown);cv.addEventListener('pointermove',noteMove);
+  cv.addEventListener('pointerup',noteUp);cv.addEventListener('pointercancel',function(){NE.press=null;NE.drag=null;drawNotes()});
+  $('nDice').onclick=function(){bounce($('nDice'));noteDice()};
+  $('nUp').onclick=function(){noteSetAll(function(q,i){return (NE.edits[i]||0)+1},'⬆️ Все ноты выше на полтона')};
+  $('nDown').onclick=function(){noteSetAll(function(q,i){return (NE.edits[i]||0)-1},'⬇️ Все ноты ниже на полтона')};
+  $('nReset').onclick=function(){noteSetAll(function(){return 0},'↺ Мелодия как была')};
+})();
 if(!OC){$('chipPic').style.display='none';$('chipNotes').style.display='none'}
 
 /* ---------- история: последние 3 звука, сохраняются в браузере ---------- */
@@ -2589,6 +2761,8 @@ function surprise(rnd){
     ecInit();var pr=ECPRE[Math.floor(r()*ECPRE.length)];
     ecPush();saPreset(artistCanvas(),pr[0]);AR.seed=(r()*4294967295)>>>0||1;AR.want=true;ecSync();ecChanged(false);art=' + картина «'+pr[1]+'»';
   }
+  /* иногда и мелодия новая — если в записи есть ровные ноты */
+  if(r()<0.3&&noteDice(r,true))art+=' + новая мелодия 🎼';
   refreshTiles();
   say('🎲 Сюрприз! '+active.map(function(a){return EMO[a.id]+' '+PCT[a.lvl]}).join(' + ')+(MIX<1?' · 💧'+Math.round(MIX*100)+'%':'')+art);
   play();
@@ -2847,6 +3021,8 @@ if(location.hash.indexOf('#sa-test')===0){
       },on:function(){return W.on}},
     core:{saDot:saDot,saClear:saClear,saStamp:saStamp,saPlan:saPlan,saSnapshot:saSnapshot,ARTIST:ARTIST},
     plan:function(){return artistPlan()},
+    notes:{runs:noteRuns,edits:function(){return NE.edits},shown:function(i){return noteShown(i)},dice:noteDice,
+      set:function(i,s){if(s)NE.edits[i]=s;else delete NE.edits[i];noteChanged()},key:noteKey,range:function(){return {lo:NE.lo,hi:NE.hi,rh:NE.rh,n:NE.n}},tab:function(){setTab('notes',true)}},
     player:{rep:setRep,region:setRegion,play:play,stop:stopPlay,surprise:surprise,
       mix:function(v){if(v!=null){MIX=v;mixUI()}return MIX},
       state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
