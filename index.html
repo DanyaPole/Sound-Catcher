@@ -269,6 +269,49 @@ body.world .rb{border-color:rgba(255,255,255,.75)}
 body.world #gate{--ink:#3b2a6b;color:#3b2a6b}
 body.world .chip{background:rgba(24,16,58,.62);color:var(--ink);border-color:rgba(255,255,255,.2)}
 @media (prefers-reduced-motion:reduce){.ink{animation:none}}
+/* ---- обучение ---- */
+#help{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:124px;z-index:9;width:48px;height:48px;border-radius:50%;border:4px solid #fff;padding:0;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:22px;background:#ffd23f;color:#3b2a6b;box-shadow:0 5px 0 rgba(0,0,0,.15)}
+#help:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+body.world #help{display:flex}
+#tourPick{position:fixed;inset:0;z-index:31;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(5,3,20,.82)}
+#tourPick[hidden]{display:none}
+.tp-card{width:min(100%,360px);display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center;color:#fff}
+.tp-h{font-size:26px;margin-bottom:4px}
+.tp-b{display:flex;flex-direction:column;align-items:center;gap:2px;border:5px solid #fff;border-radius:28px;padding:16px 10px 14px;background:linear-gradient(160deg,#7c4dff,#ff3d71);color:#fff;cursor:pointer;box-shadow:0 8px 0 rgba(0,0,0,.3)}
+.tp-b[data-k=adult]{background:linear-gradient(160deg,#22b8cf,#22c7a9)}
+.tp-b span{font-size:54px;line-height:1.1}.tp-b b{font-size:26px}.tp-b small{font-size:15px;opacity:.9;font-weight:700}
+.tp-b:active{transform:translateY(5px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.tp-x{border:0;background:transparent;color:rgba(255,255,255,.75);font-size:16px;padding:10px;cursor:pointer;text-decoration:underline}
+#tour{position:fixed;inset:0;z-index:30;pointer-events:none;display:none}
+#tour.on{display:block}
+.tr-ring{position:fixed;border-radius:22px;border:4px solid #ffd23f;box-shadow:0 0 0 200vmax rgba(5,3,20,.6),0 0 24px 6px rgba(255,210,63,.75);transition:opacity .2s;animation:tr-pulse 1.4s ease-in-out infinite}
+#tour.tween .tr-ring{transition:left .35s,top .35s,width .35s,height .35s,opacity .2s}
+#tour.tween .tr-hand{transition:left .35s,top .35s,opacity .2s}
+#tour.tween .tr-bubble{transition:top .35s}
+.tr-ring.none{opacity:0;box-shadow:none;animation:none}
+@keyframes tr-pulse{50%{border-color:#fff}}
+.tr-hand{position:fixed;width:48px;text-align:center;font-size:44px;line-height:1;transition:opacity .2s;animation:tr-tap 1s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.55))}
+.tr-hand.none{opacity:0}
+@keyframes tr-tap{50%{transform:translateY(-10px)}}
+.tr-bubble{position:fixed;left:12px;right:12px;margin:0 auto;max-width:360px;background:#fff;color:#3b2a6b;border-radius:26px;padding:12px 14px;box-shadow:0 8px 0 rgba(0,0,0,.2);display:flex;gap:10px;align-items:center;pointer-events:auto}
+.tr-bf{font-size:46px;line-height:1;flex:0 0 auto;animation:tr-fly 1.3s ease-in-out infinite}
+@keyframes tr-fly{0%,100%{transform:translate(0,0) rotate(-6deg)}50%{transform:translate(4px,-6px) rotate(6deg)}}
+.tr-bm{min-width:0;display:flex;flex-direction:column;gap:8px}
+.tr-bt{font-size:18px;line-height:1.3}
+#tour.kid .tr-bt{font-size:26px;line-height:1.25}
+.tr-act{display:flex;flex-wrap:wrap;gap:8px}
+.tr-act:empty{display:none}
+.tr-act button{border:3px solid #fff;border-radius:999px;background:#7c4dff;color:#fff;font-size:17px;padding:8px 14px;cursor:pointer;box-shadow:0 4px 0 #5632c4}
+.tr-act button:active{transform:translateY(3px);box-shadow:0 1px 0 #5632c4}
+.tr-skip{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);pointer-events:auto;border:2px solid rgba(255,255,255,.5);border-radius:999px;background:rgba(10,7,32,.8);color:#fff;font-size:14px;padding:8px 14px;cursor:pointer}
+.tr-dots{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);display:flex;gap:6px}
+.tr-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.35)}
+.tr-dots i.on{background:#ffd23f}.tr-dots i.past{background:#22c7a9}
+@media (prefers-reduced-motion:reduce){.tr-ring,.tr-hand,.tr-bf{animation:none!important;transition:none!important}.tr-bubble{transition:none}}
+#portal.hint{animation:tr-portal 1.2s ease-in-out infinite}
+@keyframes tr-portal{0%,100%{transform:scale(1);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 0 rgba(255,210,63,.95)}50%{transform:scale(1.12);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 14px rgba(255,210,63,0)}}
+#portal.hint:after{content:'Нажми! 🌌';position:absolute;top:56px;right:-2px;white-space:nowrap;background:#fff;color:#3b2a6b;border-radius:999px;padding:4px 10px;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+@media (prefers-reduced-motion:reduce){#portal.hint{animation:none}}
 /* ---- холст эха ---- */
 #echoBox{display:none;flex-direction:column;align-items:center;gap:10px;width:min(100%,360px)}
 body.world #echoBox{display:flex}
@@ -362,6 +405,14 @@ body.world .ends{opacity:.7}
 <div id="whud" role="status" aria-live="polite"></div>
 <button id="portal" aria-label="Параллельный мир" aria-pressed="false">🎨</button>
 <button id="wsnd" aria-label="Звуки касаний" aria-pressed="true">🔔</button>
+<button id="help" aria-label="Как играть">❓</button>
+<div id="tourPick" hidden role="dialog" aria-label="Как будем играть?"><div class="tp-card"><div class="tp-h">Как будем играть? 🦋</div>
+  <button class="tp-b" data-k="kid"><span>🧒</span><b>Малыш</b><small>покажу картинками</small></button>
+  <button class="tp-b" data-k="adult"><span>🧑</span><b>Взрослый</b><small>коротко: как всё устроено</small></button>
+  <button class="tp-x" data-k="none">Разберусь сам</button></div></div>
+<div id="tour" role="status" aria-live="polite"><div class="tr-ring"></div><div class="tr-hand">👆</div>
+  <div class="tr-bubble"><div class="tr-bf">🦋</div><div class="tr-bm"><div class="tr-bt"></div><div class="tr-act"></div></div></div>
+  <button class="tr-skip">Пропустить ⏭</button><div class="tr-dots"></div></div>
 
 <div class="stage">
   <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="48"/><circle class="prog" id="prog" cx="50" cy="50" r="48"/></svg>
@@ -1824,7 +1875,7 @@ function wUp(e){
   if(G.mode)return;
   wTap(e.clientX,e.clientY);
 }
-function wTap(x,y){
+function wTap(x,y){W.taps=(W.taps||0)+1;
   var fy=1-y/W.h,idx=Math.max(0,Math.min(WNOTES.length-1,Math.floor(fy*WNOTES.length)));
   W.ripples.push({x:x,y:y,t:performance.now(),hue:(idx/WNOTES.length)*280-TEMP*25,a:1});
   vib(8);
@@ -1872,7 +1923,7 @@ function wApply(on){
     cancelAnimationFrame(W.raf);wRecOff();
     say(buffer?'Ты вернулся в обычный мир 🌤️':'Нажми на красную кнопку! 👆');
   }
-  ecSync();try{if(hist.length&&fx.classList.contains('show'))renderHist()}catch(e){}
+  ecSync();trWorld(on);try{if(hist.length&&fx.classList.contains('show'))renderHist()}catch(e){}
 }
 /* чернильный переход от кнопки; при «уменьшить движение» — мягкое затемнение */
 function wSet(on,quiet){
@@ -1894,7 +1945,7 @@ $('wsnd').onclick=function(){
   W.soundOn=!W.soundOn;var b=$('wsnd');b.classList.toggle('off',!W.soundOn);b.setAttribute('aria-pressed',W.soundOn?'true':'false');
   say(W.soundOn?'🔔 Мир звучит от касаний':'🔕 Касания без звука');
 };
-try{if(localStorage.getItem(WKEY)==='1')wApply(true)}catch(e){}
+/* (восстановление мира из сохранённого состояния — в конце скрипта, когда всё уже определено) */
 /* сколько клеток картины закрашено (для проверки, что звук действительно рисует) */
 function wStats(){
   if(!W.pg)return {painted:0,total:0,lvl:0};
@@ -2297,6 +2348,207 @@ function ecSync(){
   }
 }
 
+/* ---------- Обучение: для малыша и для взрослого. Шаг засчитывается по действию, а не по кнопке «Далее» ---------- */
+var TRK='zv-tour';
+var TR={kind:'',i:-1,steps:null,t0:0,poll:0,raf:0,ctx:null,voice:true,stuckMs:25000,busy:false,tries:0,lastText:'',pc:0,picked:false,autoT:0};
+function trSaved(){try{return JSON.parse(localStorage.getItem(TRK)||'{}')||{}}catch(e){return {}}}
+function trSave(o){try{var s=trSaved(),k;for(k in o)s[k]=o[k];localStorage.setItem(TRK,JSON.stringify(s))}catch(e){}}
+function trSpeak(t){
+  try{
+    if(!TR.voice||TR.kind!=='kid'||!window.speechSynthesis)return;
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(t.replace(/[←-⯿\u{1F000}-\u{1FFFF}]/gu,'').replace(/[«»]/g,''));
+    u.lang='ru-RU';u.rate=0.9;u.pitch=1.15;speechSynthesis.speak(u);
+  }catch(e){}
+}
+/* готовая мелодия «птичка»: если микрофона нет или хочется сразу играть */
+function loadDemo(){
+  var c=ac(),sr=c.sampleRate,notes=[[659.25,0],[783.99,0.28],[987.77,0.56],[783.99,0.9],[1318.5,1.18]],n=Math.round(sr*2.4),b=c.createBuffer(1,n,sr),d=b.getChannelData(0),i,k;
+  for(k=0;k<notes.length;k++){
+    var f=notes[k][0],st=Math.round(notes[k][1]*sr),len=Math.round(sr*0.34);
+    for(i=0;i<len&&st+i<n;i++){
+      var t=i/sr,env=Math.min(1,i/(sr*0.01))*Math.exp(-t*7),vb=1+0.01*Math.sin(2*Math.PI*6*t);
+      d[st+i]+=0.5*env*(Math.sin(2*Math.PI*f*vb*t)+0.35*Math.sin(2*Math.PI*f*2*t)+0.12*Math.sin(2*Math.PI*f*3*t))/1.5;
+    }
+  }
+  normalize(b);
+  stopPlay();rawBuf=b;cleanBuf=null;gen++;applyBuf();active=[];lastId='orig';refreshTiles();showResult();
+  say('🐦 Птичка поёт! Смотри, как звук рисует');play();
+}
+function trHasBlue(){var cv=artistCanvas(),i;for(i=0;i<cv.d.length;i++)if(cv.d[i]>0&&cv.p[i]<-60)return true;return false}
+function trRecDone(c){return !!buffer&&buffer!==c.buf0&&state==='idle'}
+function trKid(){
+  return [
+    {sel:'#rec',text:function(){return state==='rec'?'⏹ Нажми ещё раз!':'🎤 Нажми и скажи «Привет!»'},act:[['🐦 Или возьми птичку',loadDemo]],
+      enter:function(c){c.buf0=buffer},done:trRecDone},
+    {sel:null,text:'🎨 Смотри! Звук рисует картинку!',
+      enter:function(c){if(buffer&&!vizAn)play()},
+      done:function(c,el){if(playT>0.2)c.seen=true;return (c.seen&&playT<0)||el>6500}},
+    {sel:'@center',text:'👆 Тронь экран пальцем!',enter:function(c){c.pc0=TR.pc},done:function(c){return TR.pc>c.pc0}},
+    {sel:'#grid .t[data-id=low]',text:'🐘 Нажми на слона!',enter:function(c){c.fx0=fxKey()},done:function(c){return active.length>0&&fxKey()!==c.fx0}},
+    {sel:'#ecWrap',text:'✏️ Нарисуй пальцем точки!',
+      enter:function(c){ecInit();ecPush();saClear(artistCanvas());ecChanged(false);ecSelTool('brush');ecSelPaint('mixed');c.undo0=EC.undo.length},
+      done:function(c){return EC.undo.length>c.undo0},
+      after:function(){AR.want=true;ecSync();if(buffer)play();say('🎶 Слышишь? Эхо там, где краска!')}},
+    {sel:null,final:true,text:'🎉 Ты художник звука!',act:[['▶ Играть дальше',function(){trEnd(true)}]]}
+  ];
+}
+function trAdult(){
+  return [
+    {sel:'#rec',text:function(){return state==='rec'?'Идёт запись — нажмите ещё раз, чтобы остановить.':'Запишите звук (до 15 с). Нет микрофона или хочется быстро — возьмите готовый.'},
+      act:[['🐦 Готовый звук',loadDemo]],enter:function(c){c.buf0=buffer},done:trRecDone},
+    {sel:'#grid .t[data-id=echo]',text:'Звук рисует сам себя: время слева направо, высота — вертикаль, толщина — громкость, цвет — полоса спектра. Выберите эффект (эхо 🏔️ — хороший старт): у каждого своя «кисть».',
+      enter:function(c){c.fx0=fxKey()},done:function(c){return active.length>0&&fxKey()!==c.fx0}},
+    {sel:'#artistSw',text:'Включите «Эхо рисую я»: теперь звучит то, что нарисовано на холсте эха.',done:function(){return !!AR.want}},
+    {sel:'#ecWrap',text:'Холст эха: вправо — позже (0–3 с), выше — выше по тону, цвет — ухо (голубой левое, янтарный правое), гуще — чаще. Возьмите ✏️ и голубую краску, коснитесь холста — в наушниках эхо слева.',
+      act:[['Показать как',function(){ecInit();ecSelTool('pen');ecSelPaint('blue')}]],
+      enter:function(c){c.undo0=EC.undo.length},done:function(c){return EC.undo.length>c.undo0&&trHasBlue()}},
+    {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, готовые картины — миниатюры ниже, свайп вбок по тёмному месту меняет температуру, 🖼️ сохраняет картину звука.',
+      act:[['Готово ✓',function(){trEnd(true)}]]}
+  ];
+}
+function trTargetRect(s){
+  if(!s.sel)return null;
+  var vw=window.innerWidth,vh=window.innerHeight;
+  if(s.sel==='@center')return {left:vw/2-34,top:vh*0.5-34,width:68,height:68,pt:true};
+  var el=document.querySelector(s.sel);if(!el)return null;
+  var r=el.getBoundingClientRect();
+  if(!r.width&&!r.height)return null;
+  return {left:r.left-6,top:r.top-6,width:r.width+12,height:r.height+12};
+}
+function trLayout(){
+  if(TR.i<0)return;
+  var s=TR.steps[TR.i],vw=window.innerWidth,vh=window.innerHeight,ring=document.querySelector('.tr-ring'),hand=document.querySelector('.tr-hand'),bub=document.querySelector('.tr-bubble');
+  var r=trTargetRect(s),bh=bub.offsetHeight,safe=70;
+  if(!r){
+    ring.classList.add('none');hand.classList.add('none');
+    bub.style.top=Math.round(Math.max(safe,vh*0.28))+'px';
+  }else{
+    ring.classList.toggle('none',!!r.pt);hand.classList.remove('none');
+    ring.style.left=r.left+'px';ring.style.top=r.top+'px';ring.style.width=r.width+'px';ring.style.height=r.height+'px';
+    var below=vh-(r.top+r.height),above=r.top,top;
+    var handDown=below>=bh+70+56||below>=above;
+    hand.textContent=handDown?'👆':'👇';
+    hand.style.left=Math.round(r.left+r.width/2-24)+'px';
+    hand.style.top=Math.round(handDown?r.top+r.height+2:r.top-52)+'px';
+    if(handDown)top=r.top+r.height+56;else top=r.top-56-bh;
+    top=Math.max(safe,Math.min(vh-bh-56,top));
+    /* крупная цель (холст) может занять всё место — тогда бабочка сверху, рука на цели */
+    if(handDown&&top+bh>vh-50){top=Math.max(safe,r.top-56-bh)}
+    bub.style.top=Math.round(top)+'px';
+  }
+}
+function trLoop(){if(TR.i<0)return;trLayout();TR.raf=requestAnimationFrame(trLoop)}
+function trText(){
+  var s=TR.steps[TR.i],t=typeof s.text==='function'?s.text():s.text;
+  if(t!==TR.lastText){TR.lastText=t;document.querySelector('.tr-bt').textContent=t;trSpeak(t)}
+}
+function trActs(s,extra){
+  var box=document.querySelector('.tr-act');box.innerHTML='';
+  (s.act||[]).concat(extra||[]).forEach(function(a){
+    var b=document.createElement('button');b.textContent=a[0];b.onclick=function(){vib(8);a[1]()};box.appendChild(b);
+  });
+}
+function trDots(){
+  var box=document.querySelector('.tr-dots');box.innerHTML='';
+  TR.steps.forEach(function(x,k){var d=document.createElement('i');d.className=k===TR.i?'on':(k<TR.i?'past':'');box.appendChild(d)});
+}
+function trShow(i){
+  TR.i=i;TR.ctx={};TR.t0=performance.now();TR.lastText='';TR.busy=false;
+  var s=TR.steps[i];
+  if(s.enter)s.enter(TR.ctx);
+  if(s.sel&&s.sel.charAt(0)!=='@'){
+    var el=document.querySelector(s.sel);
+    if(el)try{
+      /* крупную цель (холст) прижимаем к верху, чтобы бабочка встала под ней; мелкую — в центр */
+      var tall=el.getBoundingClientRect().height>window.innerHeight*0.22;
+      el.style.scrollMarginTop=tall?'90px':'';
+      el.scrollIntoView({block:tall?'start':'center',behavior:W.still?'auto':'smooth'});
+    }catch(e){}
+  }
+  var tw=$('tour');tw.classList.add('tween');setTimeout(function(){tw.classList.remove('tween')},450);
+  if(s.final){try{window.scrollTo(0,0)}catch(e){}}
+  trText();trActs(s);trDots();trLayout();
+}
+function trTick(){
+  if(TR.i<0||TR.busy)return;
+  var s=TR.steps[TR.i],el=performance.now()-TR.t0;
+  trText();
+  if(!s.final&&el>TR.stuckMs&&!TR.ctx.stuckBtn){
+    TR.ctx.stuckBtn=true;trActs(s,[['Пропустить шаг ➡️',function(){trAdvance(true)}]]);
+  }
+  if(s.done&&s.done(TR.ctx,el))trAdvance(false);
+}
+function trAdvance(forced){
+  if(TR.busy)return;TR.busy=true;
+  var s=TR.steps[TR.i];
+  if(!forced&&s.after)s.after(TR.ctx);
+  vib(20);try{burst(document.querySelector('.tr-bf'))}catch(e){}
+  var wait=forced?0:(TR.kind==='kid'?900:500);
+  setTimeout(function(){if(TR.i<0)return;if(TR.i+1<TR.steps.length)trShow(TR.i+1);else trEnd(true)},wait);
+}
+function trStart(kind){
+  if(!W.on)wSet(true,true);
+  trEnd(false,true);
+  TR.kind=kind;TR.steps=kind==='kid'?trKid():trAdult();TR.pc=0;
+  $('tourPick').hidden=true;
+  $('tour').className='on '+kind;
+  trSave({seen:1,last:kind});
+  trShow(0);
+  clearInterval(TR.poll);TR.poll=setInterval(trTick,150);
+  cancelAnimationFrame(TR.raf);TR.raf=requestAnimationFrame(trLoop);
+}
+function trEnd(done,quiet){
+  var was=TR.i>=0,kind=TR.kind;
+  clearInterval(TR.poll);cancelAnimationFrame(TR.raf);
+  TR.i=-1;TR.steps=null;TR.busy=false;
+  $('tour').className='';
+  try{if(window.speechSynthesis)speechSynthesis.cancel()}catch(e){}
+  if(!was||quiet)return;
+  var o={seen:1};if(done)o[kind]=1;trSave(o);
+  if(done){
+    say(kind==='kid'?'🎉 Ты художник звука! Играй дальше':'Готово. Кнопка ❓ вернёт подсказки в любой момент');
+    try{burst($('portal'));setTimeout(function(){burst($('rec'))},250)}catch(e){}
+    vib([30,40,30]);
+  }
+}
+function trOpenPick(){
+  trEnd(false,true);
+  $('tourPick').hidden=false;
+}
+document.querySelector('#tourPick').addEventListener('click',function(e){
+  var b=e.target.closest&&e.target.closest('[data-k]');if(!b)return;
+  var k=b.getAttribute('data-k');
+  if(k==='none'){$('tourPick').hidden=true;trSave({seen:1});say('Хорошо! Кнопка ❓ покажет, как играть');return}
+  ac();trStart(k);
+});
+document.querySelector('.tr-skip').onclick=function(){trEnd(false)};
+$('help').onclick=function(){bounce($('help'));trOpenPick()};
+document.addEventListener('pointerdown',function(e){
+  if(TR.i<0)return;
+  var t=e.target;if(t&&t.closest&&t.closest('.tr-bubble,.tr-skip'))return;
+  TR.pc++;
+},true);
+/* первый вход в мир: предлагаем обучение, когда экран спокоен (заставка и запрос микрофона закрыты) */
+function trWorld(on){
+  if(on)$('portal').classList.remove('hint');
+  if(!on){trEnd(false,true);$('tourPick').hidden=true;clearTimeout(TR.autoT);return}
+  if(trSaved().seen||TR.picked)return;
+  TR.tries=0;
+  (function wait(){
+    clearTimeout(TR.autoT);
+    TR.autoT=setTimeout(function(){
+      if(!W.on||trSaved().seen)return;
+      if($('gate').classList.contains('hide')&&!document.getElementById('splash')){TR.picked=true;$('tourPick').hidden=false;return}
+      if(++TR.tries<40)wait();
+    },700);
+  })();
+}
+
+/* ---------- старт: подсказка на портале для тех, кто ещё не заходил; восстановление мира ---------- */
+if(!trSaved().seen)$('portal').classList.add('hint');
+try{if(localStorage.getItem(WKEY)==='1')wApply(true)}catch(e){try{console.error(e)}catch(x){}}
+
 /* ---------- тестовый вход: только с #sa-test в адресе ---------- */
 if(location.hash.indexOf('#sa-test')===0){
   var saRun=/run=([\w-]+)/.exec(location.hash);
@@ -2326,6 +2578,7 @@ if(location.hash.indexOf('#sa-test')===0){
     vol:function(){return VOL},temp:function(){return TEMP},hist:function(){return hist},thumb:function(){return thumbOf(rawBuf)},
     brush:function(){return W.br},ripples:function(){return W.ripples.length},
     cost:function(){return W.cost},still:function(){return W.still},keepOk:function(){return !!W.keepOk},taps:function(v){if(v)AR.taps=v;return AR.taps},
+    tour:{state:function(){return {i:TR.i,kind:TR.kind,n:TR.steps?TR.steps.length:0,text:TR.lastText,pick:!$('tourPick').hidden,on:$('tour').className,sel:TR.steps&&TR.i>=0?TR.steps[TR.i].sel:''}},start:trStart,fast:function(v){TR.stuckMs=v},saved:trSaved,reset:function(){try{localStorage.removeItem(TRK)}catch(e){}TR.picked=false},texts:function(k){return (k==='kid'?trKid():trAdult()).map(function(s){return typeof s.text==='function'?s.text():s.text})},demo:loadDemo,taps:function(){return W.taps||0}},
     ui:function(){showResult();refreshTiles();setTab('wave',true)},
     world:{set:function(on){wSet(on,true)},play:function(){play()},stats:wStats,
       png:function(){
