@@ -235,8 +235,8 @@
   "stable": true
  },
  "mixB": {
-  "h": "70a98b9c:83790",
-  "rms": 0.3254799263454889,
+  "h": "3515f656:83790",
+  "rms": 0.32547992700787043,
   "stable": false
  },
  "mixC": {
@@ -253,5 +253,40 @@
   "h": "244c25d7:79380",
   "rms": 0.25765288050390023,
   "stable": true
+ },
+ "art-classic": {
+  "h": "2d6e5090:167696",
+  "rms": 0.2517061267000789,
+  "stable": false
+ },
+ "art-rain": {
+  "h": "a3fbfef3:202761",
+  "rms": 0.25064840302128943,
+  "stable": false
+ },
+ "art-mountains": {
+  "h": "58d94d31:150057",
+  "rms": 0.27006154238827773,
+  "stable": false
+ },
+ "art-pingpong": {
+  "h": "7ca0ecbd:191469",
+  "rms": 0.24309446557421324,
+  "stable": false
+ },
+ "art-double": {
+  "h": "844e6671:93350",
+  "rms": 0.26798955970492877,
+  "stable": false
+ },
+ "art-cloud": {
+  "h": "9112ed36:101080",
+  "rms": 0.2630844001317476,
+  "stable": false
+ },
+ "art-mirror": {
+  "h": "d4a515c5:173454",
+  "rms": 0.2564012739876275,
+  "stable": false
  }
 }

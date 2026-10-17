@@ -21,6 +21,14 @@
     function hash(ab){var h=2166136261>>>0,c,k;for(c=0;c<ab.numberOfChannels;c++){var d=ab.getChannelData(c),u=new Uint32Array(d.buffer,d.byteOffset,d.length);for(k=0;k<u.length;k++)h=Math.imul(h^u[k],16777619)>>>0}return h.toString(16)+':'+ab.length}
     var out={};
     for(var j=0;j<CASES.length;j++){var c=CASES[j];T.fx(c[1]);T.out(c[2],c[3]);var a=await T.render(),b=await T.render(),h=hash(a);out[c[0]]={h:h,rms:rms(a),stable:h===hash(b)&&!c[1].some(function(f){return f[0]==='chorus'})}}
+    /* режим художника включён: 7 пресетов, seed фиксирован; сравниваются по уровню (суммирование эх шумит в последнем бите) */
+    T.fx([]);T.out(1,0);
+    var PR=['classic','rain','mountains','pingpong','double','cloud','mirror'];
+    for(var q=0;q<PR.length;q++){
+      T.artist({on:true,seed:2026,influence:1,blur:0,preset:PR[q]});
+      var ra=await T.render();out['art-'+PR[q]]={h:hash(ra),rms:rms(ra),stable:false};
+    }
+    T.artist({on:false});
     await report({ok:true,hashes:out});
   }catch(e){await report({error:String(e&&e.stack||e)})}
 })();

@@ -1550,7 +1550,17 @@ if(location.hash.indexOf('#sa-test')===0){
     },
     fx:function(list){active=list.map(function(a){return {id:a[0],lvl:a[1]}})},
     out:function(v,t){VOL=v;TEMP=t},
-    render:function(){return renderWav(1)}
+    render:function(){return renderWav(1)},
+    artist:function(o){
+      AR.on=!!o.on;
+      if(o.seed!=null)AR.seed=o.seed;
+      if(o.influence!=null)AR.influence=o.influence;
+      if(o.blur!=null)AR.blur=o.blur;
+      if(o.preset)saPreset(artistCanvas(),o.preset);
+    },
+    canvas:function(){return artistCanvas()},
+    core:{saDot:saDot,saClear:saClear,saStamp:saStamp,saPlan:saPlan,saSnapshot:saSnapshot,ARTIST:ARTIST},
+    plan:function(){return artistPlan()}
   }};
   if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
 }
