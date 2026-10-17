@@ -14,6 +14,7 @@ function serve(){
         let b='';q.on('data',d=>b+=d);q.on('end',()=>{r.writeHead(200,{'Access-Control-Allow-Origin':'*'});r.end('ok');try{onReport(JSON.parse(b))}catch(e){onReport({error:'bad json: '+b.slice(0,200)})}});
         return;
       }
+      if(q.url.indexOf('/slow')===0){const ms=+(/ms=(d+)/.exec(q.url)||[0,0])[1];setTimeout(()=>{r.writeHead(200,{'Content-Type':'image/gif'});r.end(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64'))},ms);return}
       const p=path.join(ROOT,decodeURIComponent(q.url.split('?')[0].split('#')[0]));
       if(!p.startsWith(ROOT)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){r.writeHead(404);r.end();return}
       r.writeHead(200,{'Content-Type':MIME[path.extname(p)]||'application/octet-stream','Cache-Control':'no-store'});
@@ -28,8 +29,8 @@ function chrome(url,extra){
   return {proc:p,stop(){try{p.kill()}catch(e){}setTimeout(()=>{try{fs.rmSync(dir,{recursive:true,force:true})}catch(e){}},800)}};
 }
 /* открыть страницу ?run=<имя>, дождаться отчёта (до timeout мс) */
-async function run(name,timeout){
-  const s=await serve(),c=chrome('http://127.0.0.1:'+s.port+'/index.html#sa-test&run='+name);
+async function run(name,timeout,flags){
+  const s=await serve(),c=chrome('http://127.0.0.1:'+s.port+'/index.html#sa-test&run='+name,flags);
   let tm;const t=new Promise(r=>{tm=setTimeout(()=>r({error:'таймаут '+(timeout||120000)+' мс'}),timeout||120000)});
   try{return await Promise.race([s.report,t])}finally{clearTimeout(tm);c.stop();s.server.close()}
 }
