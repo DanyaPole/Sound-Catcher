@@ -4,8 +4,8 @@ const fs=require('fs'),path=require('path'),assert=require('assert');
 const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const a0=html.indexOf('/*SA-CORE-BEGIN*/'),b0=html.indexOf('/*SA-CORE-END*/');
 assert(a0>0&&b0>a0,'не найдены маркеры ядра');
-const core=new Function(html.slice(a0,b0)+'; return {ARTIST,saRng,saCanvas,saClear,saStamp,saSpray,saSnapshot,saUpper,saSampleCanvas,saSampleFog,saEcho,saPlan,saPreset,SA_PRESETS,saDot};')();
-const {ARTIST,saRng,saCanvas,saStamp,saSnapshot,saUpper,saSampleCanvas,saPlan,saPreset,SA_PRESETS,saDot,saSpray}=core;
+const core=new Function(html.slice(a0,b0)+'; return {ARTIST,saRng,saCanvas,saClear,saStamp,saSpray,saSnapshot,saUpper,saSampleCanvas,saSampleFog,saEcho,saPlan,saPreset,SA_PRESETS,saDot,saBrush};')();
+const {saBrush,ARTIST,saRng,saCanvas,saStamp,saSnapshot,saUpper,saSampleCanvas,saPlan,saPreset,SA_PRESETS,saDot,saSpray}=core;
 
 let pass=0,fail=0;
 function t(name,fn){try{fn();pass++;console.log('  ✓',name)}catch(e){fail++;console.log('  ✗',name,'\n     ',e.message)}}
@@ -145,6 +145,20 @@ t('пересборка слепка < 5 мс',()=>{
   const cv=saCanvas();saPreset(cv,'cloud');const t0=process.hrtime.bigint();for(let i=0;i<20;i++)saSnapshot(cv);
   const ms=Number(process.hrtime.bigint()-t0)/1e6/20;console.log('      ',ms.toFixed(2),'мс');assert(ms<5);
 });
+
+console.log('кисти эффектов');
+t('нет эффектов: нейтральная кисть',()=>{const b=saBrush({});assert.strictEqual(b.thick,1);assert.strictEqual(b.wobble.length,0);assert.strictEqual(b.echo,null)});
+t('Слон толще и ниже, Мышка тоньше и выше (от скорости проигрыша)',()=>{const e=saBrush({low:1}),m=saBrush({high:1});assert(e.rate<1&&e.thick>1);assert(m.rate>1&&m.thick<1);assert(e.thick>saBrush({low:0.25}).thick)});
+t('Варп и НЛО качают ленту на реальных 2,5 и 7 Гц',()=>{const b=saBrush({warp:0.5,ufo:1});assert.deepStrictEqual(b.wobble.map(w=>w.hz),[2.5,7]);assert.strictEqual(b.wobble[0].amp,0.175);assert.strictEqual(b.wobble[1].amp,0.3)});
+t('Эхо: задержка 0,28 с и обратная связь как в build()',()=>{const b=saBrush({echo:1});assert.strictEqual(b.echo.delay,0.28);assert(Math.abs(b.echo.fb-0.6)<1e-9);assert(Math.abs(b.echo.mix-0.8)<1e-9)});
+t('Замок: свечение растёт с силой, длина хвоста как у реверберации',()=>{const a=saBrush({cave:0.25}),c=saBrush({cave:1});assert(c.glow>a.glow);assert(Math.abs(c.cave.len-3.5)<1e-9)});
+t('Ретро: ступеньки 3/6/12 как у crush(), квадратные пиксели',()=>{assert.deepStrictEqual([0.25,0.5,1].map(s=>saBrush({retro:s}).grid),[3,6,12]);assert(saBrush({retro:1}).square)});
+t('Вертолёт: толщина пульсирует на 9 Гц (не яркость)',()=>{const p=saBrush({trem:1}).pulse;assert.strictEqual(p.hz,9);assert.strictEqual(p.amp,0.5)});
+t('Хор: три копии с задержками 16/24/32 мс',()=>assert.deepStrictEqual(saBrush({chorus:1}).copies,[0.016,0.024,0.032]));
+t('Попугай: кусочки по 0,12 с',()=>assert.strictEqual(saBrush({parrot:1}).dash,0.12));
+t('Задом наперёд: кусочки 0,22 / 0,6 с / целиком, цвета перевёрнуты',()=>{assert.deepStrictEqual([0.25,0.5,1].map(s=>saBrush({rev:s}).revChunk),[0.22,0.6,0]);assert(saBrush({rev:1}).hueFlip)});
+t('Рация и Под водой обесцвечивают краску, вода размывает',()=>{assert(saBrush({radio:1}).sat<40);const w=saBrush({water:1});assert(w.sat<92&&w.blur>0)});
+t('Рок: зазубрины тем сильнее, чем сильнее эффект',()=>assert(saBrush({rock:1}).zig>saBrush({rock:0.25}).zig));
 
 console.log('\nИтого: ✓',pass,' ✗',fail);
 process.exit(fail?1:0);
