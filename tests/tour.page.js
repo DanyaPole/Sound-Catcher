@@ -141,6 +141,14 @@
     check('S1 перезагрузка внутри мира: приложение сразу в мире, холст эха инициализирован',okR,info);
     fr.remove();try{localStorage.setItem('zv-world','0')}catch(e){}
 
+    /* ?fresh: новый тестер видит всё как в первый раз, записи не страдают */
+    try{localStorage.setItem('zv-world','1');localStorage.setItem('zv-tour','{"seen":1}');localStorage.setItem('zv-echo','x')}catch(e){}
+    var f2=document.createElement('iframe');f2.src='/index.html?fresh';f2.style.cssText='position:fixed;left:-3000px;top:0;width:500px;height:900px;border:0';
+    document.body.appendChild(f2);await sleep(1800);
+    var d2=f2.contentDocument,fk=[localStorage.getItem('zv-world'),localStorage.getItem('zv-tour'),localStorage.getItem('zv-echo')];
+    check('F1 ?fresh сбрасывает мир, обучение и холст; адрес очищается',fk.every(function(v){return v===null})&&!d2.body.classList.contains('world')&&d2.getElementById('portal').classList.contains('hint')&&f2.contentWindow.location.search==='','ключи: '+JSON.stringify(fk)+', адрес '+f2.contentWindow.location.search+'|');
+    f2.remove();
+
     await report({ok:true,results:results});
   }catch(e){await report({error:String(e&&e.stack||e),results:results})}
 })();

@@ -484,6 +484,8 @@ body.world .ends{opacity:.7}
 <script>
 (function(){
 'use strict';
+/* ?fresh в адресе — чистое первое знакомство для нового тестера: сбрасывает только состояние режима (мир, обучение, холст эха), записи не трогает */
+try{if(/[?&#]fresh(&|=|$)/.test(location.search+location.hash)){['zv-world','zv-tour','zv-echo'].forEach(function(k){localStorage.removeItem(k)});history.replaceState(null,'',location.pathname)}}catch(e){}
 var MAX=15000, MIN_DUR=0.25, BARS=40, HIST_MAX=3;
 var EFFECTS=[
   {id:'orig',e:'👂',n:'Как было'},{id:'echo',e:'🏔️',n:'Эхо'},{id:'cave',e:'🏰',n:'Замок'},{id:'warp',e:'🌀',n:'Варп'},
