@@ -86,11 +86,20 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .row{display:flex;align-items:center;gap:10px;width:min(100%,360px)}
 .rb{flex:0 0 auto;border-radius:50%;border:5px solid #fff;color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
 .rb:active{transform:translateY(5px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
-#play{width:76px;height:76px;font-size:34px;background:var(--ok);box-shadow:0 7px 0 var(--okd);padding-left:4px}
+/* плеер прилипает к верху экрана: ▶/⏹, повтор и 🎲 видны при любой прокрутке */
+.tbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;gap:8px;padding:6px;border-radius:34px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
+#play{width:64px;height:64px;font-size:30px;background:var(--ok);box-shadow:0 6px 0 var(--okd);padding-left:4px}
 #play.st{padding-left:0}
-#share{width:60px;height:60px;font-size:26px;background:var(--sun);box-shadow:0 6px 0 var(--sund)}
-#shareArt{display:none;width:60px;height:60px;font-size:26px;background:var(--vio);box-shadow:0 6px 0 var(--viod)}
-#wave{flex:1;min-width:0;height:76px;background:#fff;border-radius:22px;box-shadow:0 5px 0 rgba(0,0,0,.1)}
+.rb.sm{width:48px;height:48px;font-size:21px;border-width:4px}
+#rep{background:var(--vio);box-shadow:0 5px 0 var(--viod)}
+#rep[data-m=once]{background:#a99bd6;box-shadow:0 5px 0 #7d6fae}
+#surprise{background:#ff9f1c;box-shadow:0 5px 0 #d17314}
+#wave{flex:1;min-width:0;height:64px;background:#fff;border-radius:22px;box-shadow:0 4px 0 rgba(0,0,0,.08);touch-action:pan-y;cursor:pointer}
+.shr{gap:10px}
+.pill{flex:1;min-width:0;min-height:48px;border:4px solid #fff;border-radius:999px;color:#fff;font-size:16px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.pill:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+#share{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sund)}
+#shareArt{display:none;background:var(--vio);box-shadow:0 5px 0 var(--viod)}
 .sec{width:min(100%,360px);font-size:16px;margin:6px 0 -4px;padding-left:4px;opacity:.85}
 .tip{font-size:13px;opacity:.8;text-align:center;margin-top:-2px}
 .hist{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(100%,360px)}
@@ -121,6 +130,7 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .kr #temp{background:linear-gradient(90deg,#4cc9f0,#efeaff 50%,#ff8a3d)}
 .kr #temp::-webkit-slider-thumb{border-color:var(--ink)}
 .kr #temp::-moz-range-thumb{border-color:var(--ink)}
+.kr #mix{background:linear-gradient(90deg,#f5dca6,#4cc9f0)}
 /* оттенок температуры задаёт скрипт: --tb для светлой темы, --tw — прозрачный для тёмного мира */
 #tempBox{background:var(--tb,#fff)}
 
@@ -270,7 +280,8 @@ body.world #rec{box-shadow:0 0 38px 8px rgba(255,61,113,.5),0 8px 0 var(--recd)}
 body.world #rec.on{box-shadow:0 0 46px 12px rgba(124,77,255,.6),0 8px 0 #1f1440}
 body.world #rec span{display:none}
 body.world #rec:not(.on):after{content:"🖌️"}
-body.world .rb{border-color:rgba(255,255,255,.75)}
+body.world .rb,body.world .pill{border-color:rgba(255,255,255,.75)}
+body.world .tbar{background:rgba(24,16,58,.72);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
 body.world #gate{--ink:#3b2a6b;color:#3b2a6b}
 body.world .ends{opacity:.7}
 
@@ -465,11 +476,15 @@ body.world #echoBox{display:flex}
 <div id="eq"><i></i><i></i><i></i><i></i><i></i></div>
 <div id="msg">Нажми на красную кнопку! 👆</div>
 <div id="fx">
-  <div class="row">
+  <div class="row tbar" id="tbar">
     <button id="play" class="rb" aria-label="Играть">▶</button>
-    <canvas id="wave"></canvas>
-    <button id="share" class="rb" aria-label="Поделиться">📤</button>
-    <button id="shareArt" class="rb" aria-label="Поделиться картиной звука">🖼️</button>
+    <canvas id="wave" aria-label="Волна: коснись — играть с этого места, проведи пальцем вбок — выбрать кусочек"></canvas>
+    <button id="rep" class="rb sm" data-m="once" aria-label="Повтор: один раз">➡️</button>
+    <button id="surprise" class="rb sm" aria-label="Сюрприз: всё случайно">🎲</button>
+  </div>
+  <div class="row shr">
+    <button id="share" class="pill" aria-label="Поделиться">📤 Отправить звук</button>
+    <button id="shareArt" class="pill" aria-label="Поделиться картиной звука">🖼️ Картина</button>
   </div>
   <div class="sec">🕘 Мои звуки</div>
   <div class="hist" id="hist"></div>
@@ -491,6 +506,7 @@ body.world #echoBox{display:flex}
   </div>
   <div class="sec">🎚️ Настрой звук</div>
   <div class="tools">
+    <div class="knob" id="mixBox"><div class="kt"><span>💧 Сухо — мокро</span><b id="mixTxt">мокро: 100%</b></div><div class="kr"><span>🏜️</span><input class="rng" id="mix" type="range" min="0" max="100" value="100" aria-label="Сухо — мокро: сколько эффекта слышно"><span>🌊</span></div></div>
     <div class="knob"><div class="kt"><span>🔊 Громкость</span><b id="volTxt">100%</b></div><div class="kr"><span>🔈</span><input class="rng" id="vol" type="range" min="0" max="200" value="100" aria-label="Громкость"><span>🔊</span></div></div>
     <div class="knob" id="tempBox"><div class="kt"><span>🌡️ Температура</span><b id="tempTxt">обычный 🙂</b></div><div class="kr"><span>❄️</span><input class="rng" id="temp" type="range" min="-100" max="100" value="0" aria-label="Температура звука"><span>🔥</span></div></div>
     <button class="sw" id="chipClean" role="switch" aria-checked="false"><span class="kn"></span><span class="sl">✨ Чистый звук</span><small>убрать шум и шипение</small></button>
@@ -544,7 +560,7 @@ var $=function(id){return document.getElementById(id)};
 var rec=$('rec'),prog=$('prog'),fx=$('fx'),msg=$('msg'),grid=$('grid'),gate=$('gate'),gtxt=$('gtxt'),
     playBtn=$('play'),shareBtn=$('share'),wave=$('wave'),body=document.body;
 
-var ctx=null,buffer=null,peaks=[],active=[],multi=false,lastId='orig',stopFn=null,stream=null,mr=null,
+var ctx=null,buffer=null,peaks=[],active=[],multi=false,lastId='orig',stream=null,mr=null,
     chunks=[],tStart=0,recRaf=0,recTimer=0,state='idle',playRaf=0,silent=null,gen=0,cache={key:'',blob:null};
 
 /* ---------- helpers ---------- */
@@ -812,8 +828,9 @@ function tap(id,b){
   }
   play();burst(b);
 }
+function setMulti(v){multi=v;var m=$('multi');m.classList.toggle('on',v);m.setAttribute('aria-checked',v?'true':'false')}
 $('multi').onclick=function(){
-  multi=!multi;var m=$('multi');m.classList.toggle('on',multi);m.setAttribute('aria-checked',multi?'true':'false');vib(10);
+  setMulti(!multi);vib(10);
   var changed=false;
   if(!multi&&active.length>1){
     var keep=lvlOf(lastId)?lastId:active[active.length-1].id;
@@ -932,10 +949,18 @@ function drawWave(p){
   if(wave.width!==Math.round(w*dpr)){wave.width=Math.round(w*dpr);wave.height=Math.round(h*dpr)}
   var g=wave.getContext('2d');
   g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
-  var n=peaks.length||BARS,bw=(w-20)/n,i;
+  var n=peaks.length||BARS,bw=(w-20)/n,i,lo=Math.min(WV.s,p),hi=Math.max(WV.s,p),
+      sel=WV.sel,reg=REP.a>0||REP.b<1,ra=sel?sel[0]:REP.a,rb=sel?sel[1]:REP.b;
+  /* кусочек (или то, что выделяется пальцем): светлая полоса с ручками по краям */
+  if(sel||reg){
+    var x0=10+ra*(w-20),x1=10+rb*(w-20);
+    g.fillStyle=W.on?'rgba(169,139,255,.22)':'rgba(124,77,255,.13)';
+    g.beginPath();if(g.roundRect)g.roundRect(x0,2,x1-x0,h-4,10);else g.rect(x0,2,x1-x0,h-4);g.fill();
+    g.fillStyle=W.on?'#c9b6ff':'#7c4dff';g.fillRect(x0-1.5,4,3,h-8);g.fillRect(x1-1.5,4,3,h-8);
+  }
   for(i=0;i<n;i++){
-    var v=peaks.length?peaks[i]:0.1,bh=Math.max(6,v*(h-20)),played=(i/n<p);
-    g.globalAlpha=played?1:0.3;
+    var v=peaks.length?peaks[i]:0.1,bh=Math.max(6,v*(h-20)),f0=i/n,f1=(i+1)/n,played=p>=0&&f1>lo&&f0<hi,out=reg&&!sel&&(f1<=REP.a||f0>=REP.b);
+    g.globalAlpha=played?1:(out?0.14:0.3);
     g.fillStyle=COLORS[i%COLORS.length];
     var x=10+i*bw+bw*0.15,r=Math.min(bw*0.35,3);
     g.beginPath();
@@ -943,13 +968,19 @@ function drawWave(p){
     g.fill();
   }
   g.globalAlpha=1;
+  if(SES&&p>=0){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(10+p*(w-20)-1.5,2,3,h-4)}
 }
-window.addEventListener('resize',function(){if(buffer)drawWave(0);drawViz()});
+window.addEventListener('resize',function(){if(buffer)drawWave(playFrac);drawViz()});
 
 /* ---------- звуковой граф: до 3 эффектов, у каждого сила 25/50/100% ---------- */
 function rateOf(){var r=1,s;if((s=S('low')))r*=Math.pow(0.6,s);if((s=S('high')))r*=Math.pow(1.8,s);if((s=S('ufo')))r*=Math.pow(1.25,s);return r}
 function caveLen(s){return 0.8+2.7*s}
-function tailOf(){var t=0.3,s;if((s=S('echo')))t+=1+2.5*s;if((s=S('cave')))t+=caveLen(s);if(S('warp'))t+=0.4;if(S('chorus'))t+=0.1;if(AR.on)t+=artistExtra();return t}
+function tailOf(){
+  var t=0.3,s;if((s=S('echo')))t+=1+2.5*s;if((s=S('cave')))t+=caveLen(s);if(S('warp'))t+=0.4;if(S('chorus'))t+=0.1;if(AR.on)t+=artistExtra();
+  /* «сухо — мокро»: исходная запись может оказаться длиннее обработанной (Мышка) */
+  if(MIX<1)t=Math.max(t,buffer.duration-srcBuf().duration/rateOf());
+  return t;
+}
 /* на сколько дольше оригинала звучит самое позднее эхо художника */
 function artistExtra(){
   var ap=artistPlan();if(!ap||!ap.length)return 0;
@@ -1026,23 +1057,38 @@ function shaper(c,k){
   return ws;
 }
 /* «эхо зала» для замка: шум, который плавно затихает */
+var irCache={};
 function makeIR(c,len){
-  var sr=c.sampleRate,n=Math.round(sr*len),b=c.createBuffer(2,n,sr),seed=12345,ch,i;
+  var sr=c.sampleRate,n=Math.round(sr*len),ik=sr+':'+n;
+  /* повтор по кругу строит граф на каждый проход — одинаковый «зал» не пересчитываем */
+  if(irCache[ik])return irCache[ik];
+  var b=c.createBuffer(2,n,sr),seed=12345,ch,i;
+  irCache={};irCache[ik]=b;
   for(ch=0;ch<2;ch++){
     var d=b.getChannelData(ch);
     for(i=0;i<n;i++){seed=(seed*16807)%2147483647;d[i]=(seed/1073741823.5-1)*Math.pow(1-i/n,2.5)}
   }
   return b;
 }
-function build(c,dest){
+/* звук задом наперёд целиком (для повтора «туда-сюда»); держим последние несколько */
+var revCache=[];
+function revOf(b){
+  for(var k=0;k<revCache.length;k++)if(revCache[k].s===b)return revCache[k].r;
+  var r=newBuf(b),L=b.length,c,i;
+  for(c=0;c<b.numberOfChannels;c++){var x=b.getChannelData(c),y=r.getChannelData(c);for(i=0;i<L;i++)y[i]=x[L-1-i]}
+  revCache.push({s:b,r:r});if(revCache.length>4)revCache.shift();
+  return r;
+}
+/* o — один проход плеера: {a,b — кусочек (доли звука), rev — задом наперёд, semis — сдвиг высоты}; без o — как всегда */
+function build(c,dest,o){
   var nodes=[],oscs=[],s;
   function node(n){nodes.push(n);return n}
   function gain(v){var g=node(c.createGain());g.gain.value=v;return g}
   function osc(type,f){var o=c.createOscillator();o.type=type;o.frequency.value=f;oscs.push(o);return o}
   function filt(type,f,q){var b=node(c.createBiquadFilter());b.type=type;b.frequency.value=f;if(q!==undefined)b.Q.value=q;return b}
   var master=gain(1);master.connect(dest);
-  var src=c.createBufferSource();src.buffer=srcBuf();
-  var rate=rateOf();src.playbackRate.value=rate;
+  var src=c.createBufferSource();src.buffer=o&&o.rev?revOf(srcBuf()):srcBuf();
+  var rate=rateOf();if(o&&o.semis)rate*=Math.pow(2,o.semis/12);src.playbackRate.value=rate;
   var vibs=[];
   function vibr(f,d){var l=osc('sine',f),a=gain(d*rate);l.connect(a);a.connect(src.playbackRate);vibs.push(a)}
   if((s=S('warp')))vibr(2.5,0.35*s);
@@ -1095,8 +1141,15 @@ function build(c,dest){
   if((s=S('cave')))par(1-0.3*s,0.35+0.6*s,function(inN){
     var cv=node(c.createConvolver());cv.buffer=makeIR(c,caveLen(s));inN.connect(cv);return cv;
   });
-  cur.connect(master);
-  return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate,tail:tailOf(),taps:taps};
+  /* сухо — мокро: обработанный звук тише, рядом звучит исходная запись без эффектов */
+  var wg=null,dg=null;
+  if(MIX<1){
+    wg=gain(MIX);cur.connect(wg);wg.connect(master);
+    var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(buffer):buffer;
+    if(o&&o.semis)ds.playbackRate.value=Math.pow(2,o.semis/12);
+    dg=gain(1-MIX);ds.connect(dg);dg.connect(master);taps.push({s:ds,when:0});
+  }else cur.connect(master);
+  return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate,tail:tailOf(),taps:taps,wg:wg,dg:dg};
 }
 
 /* ---------- воспроизведение ---------- */
@@ -1105,67 +1158,166 @@ function setPlayUI(on){
   playBtn.classList.toggle('st',on);
   body.classList.toggle('playing',on);
 }
+/* повтор: once — один раз, loop — по кругу, pp — туда-сюда, rnd — каждый раз по-новому; a…b — кусочек (доли звука) */
+var REP={mode:'once',a:0,b:1},SES=null,playFrac=-1,WV={s:0,sel:null};
+var REPM={once:['➡️','Один раз'],loop:['🔁','По кругу'],pp:['↔️','Туда-сюда'],rnd:['🔀','Каждый раз по-новому']},REPORD=['once','loop','pp','rnd'];
+var REPSAY={once:'➡️ Играет один раз',loop:'🔁 По кругу, пока не нажмёшь ⏹',pp:'↔️ Туда-сюда: вперёд, потом задом наперёд',rnd:'🔀 Каждый раз по-новому: то выше, то ниже, то задом наперёд'};
+var RNDSEMI=[-5,-3,0,2,4,7],LOOP_TAIL=2.5,LOOP_LIVE=6;
 function stopPlay(){
-  cancelAnimationFrame(playRaf);vizAn=null;playT=-1;drawViz();
-  if(stopFn){var f=stopFn;stopFn=null;f()}
+  cancelAnimationFrame(playRaf);vizAn=null;playT=-1;playFrac=-1;drawViz();
+  if(SES){var s=SES;SES=null;s.end()}
   setPlayUI(false);
-  if(buffer)drawWave(0);
+  if(buffer)drawWave(-1);
 }
-function play(){
+/* начать источник прохода: весь звук — как раньше, кусочек — со смещением (у перевёрнутого — зеркально) */
+function startSrc(s,t,o){
+  if(!o||(o.a<=0&&o.b>=1)){s.start(t);return}
+  var B=s.buffer.duration;
+  s.start(t,(o.rev?1-o.b:o.a)*B,(o.b-o.a)*B);
+}
+/* from — доля звука, с которой начать (касание волны) */
+function play(from){
   if(!buffer)return;
   stopPlay();
   var c=ac();silentOn();
   var an=c.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;
   var os=outStage(c,c.destination,VOL,TEMP);an.connect(os.i);curOut=os;
-  var g=build(c,an);g.nodes.push(an);g.nodes.push.apply(g.nodes,os.nodes);vizAn=an;
-  var t0=c.currentTime+0.03;
-  g.oscs.forEach(function(o){o.start(t0)});
-  g.src.start(t0);
-  g.taps.forEach(function(t){t.s.start(t0+t.when)});
-  var dur=g.src.buffer.duration/g.rate,tail=g.tail,dead=false;
-  function kill(){
-    if(dead)return;dead=true;
+  var S={c:c,live:[],ps:[],k:0,timer:0,mix:[],done:false};SES=S;vizAn=an;
+  S.end=function(){
+    clearTimeout(S.timer);S.live.slice().forEach(function(f){f()});
     if(curOut===os)curOut=null;
-    try{g.master.gain.cancelScheduledValues(c.currentTime);g.master.gain.setTargetAtTime(0,c.currentTime,0.02)}catch(e){}
-    setTimeout(function(){
-      try{g.src.stop()}catch(e){}
-      g.oscs.forEach(function(o){try{o.stop()}catch(e){}});
-      g.taps.forEach(function(t){try{t.s.stop()}catch(e){}try{t.s.disconnect()}catch(e){}});
-      try{g.src.disconnect()}catch(e){}
-      g.oscs.forEach(function(o){try{o.disconnect()}catch(e){}});
-      g.nodes.forEach(function(n){try{n.disconnect()}catch(e){}});
-    },120);
-  }
-  var cleanup=setTimeout(kill,(dur+tail)*1000+100);
-  stopFn=function(){clearTimeout(cleanup);kill()};
-  setPlayUI(true);
-  var endAt=t0+dur+tail,done=false;
-  (function loop(){
-    playT=c.currentTime-t0;var p=playT/dur;
-    if(p<0)p=0;
-    if(!done){
-      if(p>=1){done=true;drawWave(1);setPlayUI(false)}else drawWave(p);
+    setTimeout(function(){try{an.disconnect()}catch(e){}os.nodes.forEach(function(n){try{n.disconnect()}catch(e){}})},160);
+  };
+  function optFor(k){
+    var o={a:REP.a,b:REP.b,rev:false,semis:0};
+    if(k===0&&from!=null&&from>o.a&&from<o.b-0.02)o.a=from;
+    if(REP.mode==='pp'&&k%2===1)o.rev=true;
+    if(REP.mode==='rnd'&&k>0){
+      o.semis=RNDSEMI[Math.floor(Math.random()*RNDSEMI.length)];o.rev=Math.random()<0.3;
+      if(AR.on)AR.seed=(Math.random()*4294967295)>>>0||1;
     }
-    if(c.currentTime<endAt&&vizAn===an){
+    return o;
+  }
+  function pass(t0,o){
+    var g=build(c,an,o);
+    g.oscs.forEach(function(x){x.start(t0)});
+    startSrc(g.src,t0,o);
+    g.taps.forEach(function(t){startSrc(t.s,t0+t.when,o)});
+    var dur=g.src.buffer.duration*(o.b-o.a)/g.rate,dead=false;
+    if(g.wg)S.mix.push(g);
+    function kill(){
+      if(dead)return;dead=true;
+      var i=S.live.indexOf(stop);if(i>=0)S.live.splice(i,1);
+      try{g.master.gain.cancelScheduledValues(c.currentTime);g.master.gain.setTargetAtTime(0,c.currentTime,0.02)}catch(e){}
+      setTimeout(function(){
+        try{g.src.stop()}catch(e){}
+        g.oscs.forEach(function(x){try{x.stop()}catch(e){}});
+        g.taps.forEach(function(t){try{t.s.stop()}catch(e){}try{t.s.disconnect()}catch(e){}});
+        try{g.src.disconnect()}catch(e){}
+        g.oscs.forEach(function(x){try{x.disconnect()}catch(e){}});
+        g.nodes.forEach(function(n){try{n.disconnect()}catch(e){}});
+      },120);
+    }
+    /* по кругу хвост прошлого прохода звучит поверх следующего, но не дольше LOOP_TAIL */
+    var tail=REP.mode==='once'?g.tail:Math.min(g.tail,LOOP_TAIL);
+    var cleanup=setTimeout(kill,(t0-c.currentTime+dur+tail)*1000+100);
+    function stop(){clearTimeout(cleanup);kill()}
+    S.live.push(stop);
+    if(S.live.length>LOOP_LIVE)S.live[0]();
+    var P={t0:t0,dur:dur,end:t0+dur+g.tail,o:o};
+    S.ps.push(P);if(S.ps.length>3)S.ps.shift();
+    return P;
+  }
+  /* следующий проход ставится заранее, точно на конец текущего по часам звука — без щелчка и паузы */
+  S.plan=function(){
+    clearTimeout(S.timer);
+    if(SES!==S||REP.mode==='once')return;
+    var last=S.ps[S.ps.length-1];
+    S.timer=setTimeout(function(){
+      if(SES!==S||REP.mode==='once')return;
+      S.k++;pass(Math.max(c.currentTime+0.02,last.t0+last.dur),optFor(S.k));S.plan();
+    },Math.max(0,(last.t0+last.dur-c.currentTime-0.25)*1000));
+  };
+  pass(c.currentTime+0.03,optFor(0));S.plan();
+  setPlayUI(true);
+  (function loop(){
+    if(SES!==S)return;
+    var now=c.currentTime,P=S.ps[0],i;
+    for(i=S.ps.length-1;i>=0;i--)if(S.ps[i].t0<=now){P=S.ps[i];break}
+    playT=now-P.t0;
+    var q=Math.max(0,Math.min(1,playT/P.dur)),o=P.o;
+    playFrac=o.rev?o.b-(o.b-o.a)*q:o.a+(o.b-o.a)*q;WV.s=o.rev?o.b:o.a;
+    var looping=REP.mode!=='once';
+    if(!S.done){
+      if(!looping&&q>=1&&P===S.ps[S.ps.length-1]){S.done=true;drawWave(playFrac);setPlayUI(false)}else drawWave(playFrac);
+    }
+    if(looping||now<P.end||P!==S.ps[S.ps.length-1]){
       drawViz();
       playRaf=requestAnimationFrame(loop);
     }else{
-      if(vizAn===an)vizAn=null;
-      playT=-1;drawViz();
+      vizAn=null;playT=-1;playFrac=-1;drawViz();SES=null;S.end();
     }
   })();
   setTimeout(prerender,120);
+}
+function setRep(m,quiet){
+  REP.mode=m;var b=$('rep');b.textContent=REPM[m][0];b.setAttribute('data-m',m);b.setAttribute('aria-label','Повтор: '+REPM[m][1].toLowerCase());
+  if(!quiet)say(REPSAY[m]);
+  /* включили повтор во время игры — следующий проход встанет в очередь; «один раз» — доиграет текущий */
+  if(SES){SES.done=false;SES.plan();if(m!=='once')setPlayUI(true)}
+}
+$('rep').onclick=function(){
+  vib(8);bounce($('rep'));
+  setRep(REPORD[(REPORD.indexOf(REP.mode)+1)%REPORD.length]);
+  if(buffer&&!SES&&REP.mode!=='once')play();
+};
+/* кусочек: a…b доли звука; весь звук — 0…1 */
+function setRegion(a,b,quiet){
+  REP.a=a;REP.b=b;
+  if(a>0||b<1){if(REP.mode==='once')setRep('loop',true);if(!quiet)say('🔂 Кусочек по кругу! Коснись волны снаружи — снова весь звук')}
+  else if(!quiet)say('🎵 Снова весь звук');
+  drawWave(playFrac);
 }
 playBtn.onclick=function(){
   if(playBtn.classList.contains('st')){stopPlay()}
   else{play();bounce(playBtn);burst(playBtn)}
 };
+/* волна: коснись — играть с этого места; проведи вбок — выбрать кусочек */
+var WVG=null;
+function wFrac(e){var r=wave.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left-10)/(r.width-20)))}
+wave.addEventListener('pointerdown',function(e){if(buffer)WVG={x:e.clientX,f:wFrac(e),sel:false}});
+wave.addEventListener('pointermove',function(e){
+  if(!WVG)return;
+  if(!WVG.sel&&Math.abs(e.clientX-WVG.x)>10){WVG.sel=true;try{wave.setPointerCapture(e.pointerId)}catch(x){}}
+  if(WVG.sel){var f=wFrac(e);WV.sel=[Math.min(WVG.f,f),Math.max(WVG.f,f)];drawWave(playFrac)}
+});
+wave.addEventListener('pointerup',function(e){
+  if(!WVG)return;
+  var G=WVG,f=wFrac(e);WVG=null;WV.sel=null;vib(8);
+  if(G.sel){
+    var a=Math.min(G.f,f),b=Math.max(G.f,f);
+    if(b-a<0.05){drawWave(playFrac);return}
+    setRegion(a,b);play();return;
+  }
+  if((REP.a>0||REP.b<1)&&(f<REP.a||f>REP.b)){setRegion(0,1,true);say('🎵 Снова весь звук — играю с этого места')}
+  else say('▶ Играю с этого места');
+  play(f);
+});
+wave.addEventListener('pointercancel',function(){WVG=null;WV.sel=null;drawWave(playFrac)});
+/* пробел — играть / стоп (на компьютере) */
+document.addEventListener('keydown',function(e){
+  if(e.code!=='Space'&&e.key!==' ')return;
+  var t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='BUTTON'||t.tagName==='SUMMARY'||t.isContentEditable))return;
+  if(!buffer||!fx.classList.contains('show'))return;
+  e.preventDefault();playBtn.onclick();
+});
 
 /* ---------- сохранить / поделиться ---------- */
 var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
 if(!OC)shareBtn.style.display='none';
 function artistKey(){return AR.on?(':a'+artistCanvas().ver+'.'+artistSeed()+'.'+AR.influence+'.'+AR.blur):''}
-function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()}
+function mixKey(){return MIX<1?':m'+MIX.toFixed(2):''}
+function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()}
 function renderWav(vol){
   return new Promise(function(res,rej){
     try{
@@ -1239,7 +1391,7 @@ shareBtn.onclick=function(){
 };
 
 /* ---------- громкость, чистый звук, картинка звука и ноты ---------- */
-var VOL=1,TEMP=0,cleanOn=false,rawBuf=null,cleanBuf=null,view=null,viewBusy='',playT=-1,curOut=null;
+var VOL=1,TEMP=0,MIX=1,cleanOn=false,rawBuf=null,cleanBuf=null,view=null,viewBusy='',playT=-1,curOut=null;
 var RUN=['До','До♯','Ре','Ре♯','Ми','Фа','Фа♯','Соль','Соль♯','Ля','Ля♯','Си'];
 var KMAJ=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88];
 var KMIN=[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
@@ -1275,6 +1427,21 @@ volEl.oninput=function(){
   if(curOut){try{curOut.vg.gain.setTargetAtTime(VOL,curOut.vg.context.currentTime,0.02)}catch(e){}}
 };
 volEl.onchange=function(){prerender()};
+/* сухо — мокро: во время игры громкости меняются сразу; если исходного звука в графе ещё нет — перезапуск, когда палец отпущен */
+var mixEl=$('mix');
+function mixUI(){var v=Math.round(MIX*100);mixEl.value=v;$('mixTxt').textContent=v===0?'сухо: без эффектов':(v===100?'мокро: 100%':v+'% эффекта')}
+mixEl.oninput=function(){
+  var v=+mixEl.value;if(v>96)v=100;
+  MIX=v/100;mixUI();
+  if(SES)SES.mix.forEach(function(g){try{var t=g.wg.context.currentTime;g.wg.gain.setTargetAtTime(MIX,t,0.03);g.dg.gain.setTargetAtTime(1-MIX,t,0.03)}catch(e){}});
+};
+mixEl.onchange=function(){
+  mixUI();
+  say(MIX>=1?'🌊 Мокро: слышно только волшебство':(MIX<=0?'🏜️ Сухо: звук без эффектов':'💧 Смешали: '+Math.round(MIX*100)+'% волшебства и '+Math.round((1-MIX)*100)+'% как было'));
+  /* в текущем графе нет исходного звука (было 100%) — перезапуск */
+  if(SES&&MIX<1&&!SES.mix.length)play();
+  prerender();needView();
+};
 var tempEl=$('temp');
 function tempUI(){
   var t=TEMP,a=Math.abs(t);
@@ -1328,6 +1495,7 @@ function cleanAudio(b){
 }
 function applyBuf(){
   buffer=cleanOn?(cleanBuf||(cleanBuf=cleanAudio(rawBuf))):rawBuf;
+  if(REP.g!==gen){REP.g=gen;REP.a=0;REP.b=1}   /* новый звук — снова весь, без кусочка */
   makePeaks();cache={key:'',blob:null};view=null;viewBusy='';drawWave(0);
 }
 $('chipClean').onclick=function(){
@@ -1439,7 +1607,7 @@ function analyse(rb,k){
 }
 function needView(){
   if(!buffer||!OC||!(vizOn.pic||vizOn.notes))return;
-  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey();
+  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey();
   if(view&&view.k===k){drawViz();return}
   if(viewBusy===k)return;
   viewBusy=k;
@@ -1807,7 +1975,7 @@ function wFrame(now){
   if(dt<200){W.dtAvg+=(dt-W.dtAvg)*0.1;if(++W.dtN===45&&W.dtAvg>28)W.half=true}
   var an=null,x=-1,src='';
   if(state==='rec'&&W.recAn){an=W.recAn;x=Math.min(1,(performance.now()-tStart)/MAX);src='rec'}
-  else if(vizAn&&playT>=0&&buffer){an=vizAn;x=Math.min(1,playT/(srcBuf().duration/rateOf()));src='play'}
+  else if(vizAn&&playT>=0&&buffer){an=vizAn;x=playFrac>=0?Math.min(1,playFrac):Math.min(1,playT/(srcBuf().duration/rateOf()));src='play'}
   W.n++;
   if(W.half&&(W.skip=!W.skip))return;
   if(!an&&!W.ripples.length&&!EC.sp.length&&!W.dirty&&(W.still||W.n%6))return;   /* тишина — облака плывут медленно, хватает 10 кадров/с */
@@ -2204,13 +2372,14 @@ function ecFrame(now){
   if(!EC.ready||!body.classList.contains('world'))return;
   var plan=AR.on?artistPlan():null,active2=false;
   if(plan&&playT>=0){
+    if(playT<EC.lastT)EC.next=0;EC.lastT=playT;   /* повтор по кругу: новый проход — эха снова с начала */
     while(EC.next<plan.length&&plan[EC.next].t<=playT){
       var e=plan[EC.next++];
       EC.sp.push({x:e.x,y:e.y,pan:e.pan,gain:e.gain,t:now});
       if(EC.log.length<400)EC.log.push({tap:e.t,at:playT});
     }
     active2=true;
-  }else if(playT<0){EC.next=0}
+  }else if(playT<0){EC.next=0;EC.lastT=0}
   if(active2||EC.sp.length||EC.dirty)ecTopDraw(now);
 }
 function ecWake(){EC.dirty=true;W.dirty=true}
@@ -2404,6 +2573,27 @@ function ecSync(){
     ecWake();
   }
 }
+
+/* ---------- 🎲 Сюрприз: всё сразу случайно — эффекты и их сила, сухо–мокро, температура; в мире ещё картина эха ---------- */
+var SURP_AVOID={orig:1};
+function surprise(rnd){
+  if(!buffer)return;
+  var r=rnd||Math.random,ids=EFFECTS.map(function(f){return f.id}).filter(function(id){return !SURP_AVOID[id]}),pick=[],n=r()<0.45?1:(r()<0.7?2:3);
+  while(pick.length<n){var id=ids[Math.floor(r()*ids.length)];if(pick.indexOf(id)<0)pick.push(id)}
+  setMulti(n>1);
+  active=pick.map(function(id){return {id:id,lvl:1+Math.floor(r()*3)}});lastId=pick[pick.length-1];
+  MIX=r()<0.5?1:Math.round((0.45+0.5*r())*20)/20;mixUI();
+  TEMP=r()<0.4?0:Math.round((r()*1.4-0.7)*20)/20;tempEl.value=Math.round(TEMP*100);tempUI();
+  var art='';
+  if(W.on&&r()<0.6){
+    ecInit();var pr=ECPRE[Math.floor(r()*ECPRE.length)];
+    ecPush();saPreset(artistCanvas(),pr[0]);AR.seed=(r()*4294967295)>>>0||1;AR.want=true;ecSync();ecChanged(false);art=' + картина «'+pr[1]+'»';
+  }
+  refreshTiles();
+  say('🎲 Сюрприз! '+active.map(function(a){return EMO[a.id]+' '+PCT[a.lvl]}).join(' + ')+(MIX<1?' · 💧'+Math.round(MIX*100)+'%':'')+art);
+  play();
+}
+$('surprise').onclick=function(){vib([10,30,10]);bounce($('surprise'));burst($('surprise'));surprise()};
 
 /* ---------- Обучение: для малыша и для взрослого. Шаг засчитывается по действию, а не по кнопке «Далее» ---------- */
 var TRK='zv-tour';
@@ -2656,7 +2846,12 @@ if(location.hash.indexOf('#sa-test')===0){
         g.globalAlpha=1;g.drawImage(W.fcv,0,0,c.width,c.height);return c.toDataURL('image/png');
       },on:function(){return W.on}},
     core:{saDot:saDot,saClear:saClear,saStamp:saStamp,saPlan:saPlan,saSnapshot:saSnapshot,ARTIST:ARTIST},
-    plan:function(){return artistPlan()}
+    plan:function(){return artistPlan()},
+    player:{rep:setRep,region:setRegion,play:play,stop:stopPlay,surprise:surprise,
+      mix:function(v){if(v!=null){MIX=v;mixUI()}return MIX},
+      state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
+        ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
+        live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}}
   }};
   if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
 }
