@@ -49,16 +49,19 @@
     check('U-b тексты взрослого ёмкие (≤ 50 слов)',at.every(function(t){return words(t)<=50}),at.map(words).join(','));
 
     check('H0 новичку кнопка 🎨 подсвечена и подписана «Нажми!»',q('#portal').classList.contains('hint'),'');
-    /* первый вход: сам предлагает обучение */
-    T.world.set(true);
-    var picked=await until(function(){return T.tour.state().pick},4500);
-    check('H1 после входа в мир подсветка кнопки убрана',!q('#portal').classList.contains('hint'),'');
-    check('U0 первый вход в мир: предлагает «Малыш» или «Взрослый»',picked&&!!q('.tp-b[data-k=kid]')&&!!q('.tp-b[data-k=adult]'),'');
+    /* первый запуск: сначала вопрос «Показать, как играть?», ещё до входа в мир */
+    var asked=await until(function(){var s=T.tour.state();return s.pick&&s.stage==='ask'},5000);
+    function vis(sel){var e=q(sel);return !!e&&e.offsetParent!==null}
+    check('O1 при первом запуске предлагает обучение: «Показать, как играть?»',asked&&!T.world.on()&&vis('.tp-yes')&&!vis('.tp-b[data-k=kid]'),'мир '+T.world.on()+', этап '+T.tour.state().stage);
+    q('.tp-yes').click();
+    check('O2 «Да» → выбор: ребёнок или взрослый',T.tour.state().stage==='who'&&vis('.tp-b[data-k=kid]')&&vis('.tp-b[data-k=adult]')&&!vis('.tp-yes'),'');
 
     /* ---- малыш ---- */
     q('.tp-b[data-k=kid]').click();
+    var kidOk=await until(function(){var s=T.tour.state();return s.i===0&&s.kind==='kid'&&T.world.on()},5000);
     var st=T.tour.state();
-    check('K0 выбран «Малыш»: обучение идёт, шагов '+st.n,st.i===0&&st.kind==='kid'&&/kid/.test(st.on),JSON.stringify(st));
+    check('K0 выбран «Ребёнок»: сам вошёл в мир и начал обучение, шагов '+st.n,kidOk&&/kid/.test(st.on)&&!st.pick,JSON.stringify(st));
+    check('H1 после входа в мир подсветка кнопки 🎨 убрана',!q('#portal').classList.contains('hint'),'');
     await geo('малыш, шаг 1 (запись)');
     q('#rec').click();await sleep(1400);
     check('K1 пока идёт запись, подсказка меняется на «нажми ещё раз»',/ещё раз/.test(T.tour.state().text),T.tour.state().text);
@@ -86,7 +89,7 @@
     /* малыш включил эхо — выключаем, чтобы проверить и этот шаг взрослого */
     if(T.ec.on())q('#artistSw').click();
     q('#help').click();
-    check('A0 кнопка ❓ снова открывает выбор',T.tour.state().pick,'');
+    check('A0 кнопка ❓ сразу открывает выбор «ребёнок или взрослый»',T.tour.state().pick&&T.tour.state().stage==='who','');
     q('.tp-b[data-k=adult]').click();
     check('A1 выбран «Взрослый»',T.tour.state().kind==='adult'&&T.tour.state().i===0,'');
     await geo('взрослый, шаг 1 (запись)');
@@ -140,6 +143,15 @@
     }catch(e){info=String(e)}
     check('S1 перезагрузка внутри мира: приложение сразу в мире, холст эха инициализирован',okR,info);
     fr.remove();try{localStorage.setItem('zv-world','0')}catch(e){}
+
+    /* «Нет, разберусь сам»: закрывает и больше не предлагает */
+    T.world.set(false);await sleep(150);T.tour.reset();T.tour.offer();
+    var asked2=await until(function(){var s=T.tour.state();return s.pick&&s.stage==='ask'},3000);
+    q('.tp-ask [data-a=no]').click();await sleep(100);
+    var noOk=asked2&&!T.tour.state().pick&&T.tour.saved().seen===1&&!T.world.on();
+    T.world.set(true);await sleep(2200);
+    check('O3 «Нет, разберусь сам» закрывает и при входе в мир больше не предлагает',noOk&&!T.tour.state().pick&&T.tour.state().on==='','');
+    T.world.set(false);await sleep(100);
 
     /* ?fresh: новый тестер видит всё как в первый раз, записи не страдают */
     try{localStorage.setItem('zv-world','1');localStorage.setItem('zv-tour','{"seen":1}');localStorage.setItem('zv-echo','x')}catch(e){}

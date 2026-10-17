@@ -277,6 +277,12 @@ body.world #help{display:flex}
 #tourPick[hidden]{display:none}
 .tp-card{width:min(100%,360px);display:flex;flex-direction:column;gap:12px;align-items:stretch;text-align:center;color:#fff}
 .tp-h{font-size:26px;margin-bottom:4px}
+.tp-ask,.tp-who{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.tp-ask[hidden],.tp-who[hidden]{display:none}
+.tp-bf{font-size:72px;line-height:1;animation:tr-fly 1.3s ease-in-out infinite}
+.tp-sub{font-size:16px;opacity:.8;margin-top:-8px}
+.tp-yes{border:5px solid #fff;border-radius:999px;background:#ffd23f;color:#3b2a6b;font-size:24px;padding:16px 10px;cursor:pointer;box-shadow:0 8px 0 rgba(0,0,0,.3)}
+.tp-yes:active{transform:translateY(5px);box-shadow:0 3px 0 rgba(0,0,0,.3)}
 .tp-b{display:flex;flex-direction:column;align-items:center;gap:2px;border:5px solid #fff;border-radius:28px;padding:16px 10px 14px;background:linear-gradient(160deg,#7c4dff,#ff3d71);color:#fff;cursor:pointer;box-shadow:0 8px 0 rgba(0,0,0,.3)}
 .tp-b[data-k=adult]{background:linear-gradient(160deg,#22b8cf,#22c7a9)}
 .tp-b span{font-size:54px;line-height:1.1}.tp-b b{font-size:26px}.tp-b small{font-size:15px;opacity:.9;font-weight:700}
@@ -311,7 +317,7 @@ body.world #help{display:flex}
 #portal.hint{animation:tr-portal 1.2s ease-in-out infinite}
 @keyframes tr-portal{0%,100%{transform:scale(1);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 0 rgba(255,210,63,.95)}50%{transform:scale(1.12);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 14px rgba(255,210,63,0)}}
 #portal.hint:after{content:'Нажми! 🌌';position:absolute;top:56px;right:-2px;white-space:nowrap;background:#fff;color:#3b2a6b;border-radius:999px;padding:4px 10px;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,.15)}
-@media (prefers-reduced-motion:reduce){#portal.hint{animation:none}}
+@media (prefers-reduced-motion:reduce){#portal.hint{animation:none}.tp-bf{animation:none}}
 /* ---- холст эха ---- */
 #echoBox{display:none;flex-direction:column;align-items:center;gap:10px;width:min(100%,360px)}
 body.world #echoBox{display:flex}
@@ -406,10 +412,15 @@ body.world .ends{opacity:.7}
 <button id="portal" aria-label="Параллельный мир" aria-pressed="false">🎨</button>
 <button id="wsnd" aria-label="Звуки касаний" aria-pressed="true">🔔</button>
 <button id="help" aria-label="Как играть">❓</button>
-<div id="tourPick" hidden role="dialog" aria-label="Как будем играть?"><div class="tp-card"><div class="tp-h">Как будем играть? 🦋</div>
-  <button class="tp-b" data-k="kid"><span>🧒</span><b>Малыш</b><small>покажу картинками</small></button>
-  <button class="tp-b" data-k="adult"><span>🧑</span><b>Взрослый</b><small>коротко: как всё устроено</small></button>
-  <button class="tp-x" data-k="none">Разберусь сам</button></div></div>
+<div id="tourPick" hidden role="dialog" aria-label="Обучение"><div class="tp-card">
+  <div class="tp-ask"><div class="tp-bf">🦋</div><div class="tp-h">Показать, как играть?</div><div class="tp-sub">Короткое обучение — 1–2 минуты</div>
+    <button class="tp-yes" data-a="yes">Да, покажи! 👍</button>
+    <button class="tp-x" data-a="no">Нет, разберусь сам</button></div>
+  <div class="tp-who" hidden><div class="tp-h">Кто будет играть?</div>
+    <button class="tp-b" data-k="kid"><span>🧒</span><b>Ребёнок</b><small>покажу картинками и голосом</small></button>
+    <button class="tp-b" data-k="adult"><span>🧑</span><b>Взрослый</b><small>коротко: как всё устроено</small></button>
+    <button class="tp-x" data-a="no">Не сейчас</button></div>
+</div></div>
 <div id="tour" role="status" aria-live="polite"><div class="tr-ring"></div><div class="tr-hand">👆</div>
   <div class="tr-bubble"><div class="tr-bf">🦋</div><div class="tr-bm"><div class="tr-bt"></div><div class="tr-act"></div></div></div>
   <button class="tr-skip">Пропустить ⏭</button><div class="tr-dots"></div></div>
@@ -2490,7 +2501,8 @@ function trAdvance(forced){
   setTimeout(function(){if(TR.i<0)return;if(TR.i+1<TR.steps.length)trShow(TR.i+1);else trEnd(true)},wait);
 }
 function trStart(kind){
-  if(!W.on)wSet(true,true);
+  /* обучение идёт в параллельном мире: входим с переходом и начинаем, когда мир открылся */
+  if(!W.on){TR.picked=true;$('tourPick').hidden=true;wSet(true);setTimeout(function(){if(W.on)trStart(kind)},wStill()?500:1100);return}
   trEnd(false,true);
   TR.kind=kind;TR.steps=kind==='kid'?trKid():trAdult();TR.pc=0;
   $('tourPick').hidden=true;
@@ -2514,15 +2526,22 @@ function trEnd(done,quiet){
     vib([30,40,30]);
   }
 }
-function trOpenPick(){
-  trEnd(false,true);
-  $('tourPick').hidden=false;
+function trPickStage(st){var p=$('tourPick');p.querySelector('.tp-ask').hidden=st!=='ask';p.querySelector('.tp-who').hidden=st!=='who';TR.stage=st}
+/* ask — «Показать, как играть?»; who — «Ребёнок или взрослый» */
+function trOpenPick(st){
+  trEnd(false,true);trPickStage(st||'who');$('tourPick').hidden=false;
+  try{$('tourPick').querySelector(st==='ask'?'.tp-yes':'.tp-b').focus()}catch(e){}
 }
 document.querySelector('#tourPick').addEventListener('click',function(e){
-  var b=e.target.closest&&e.target.closest('[data-k]');if(!b)return;
-  var k=b.getAttribute('data-k');
-  if(k==='none'){$('tourPick').hidden=true;trSave({seen:1});say('Хорошо! Кнопка ❓ покажет, как играть');return}
-  ac();trStart(k);
+  var b=e.target.closest&&e.target.closest('[data-a],[data-k]');if(!b)return;
+  TR.picked=true;
+  if(b.hasAttribute('data-a')){
+    if(b.getAttribute('data-a')==='yes'){vib(8);trPickStage('who');return}
+    $('tourPick').hidden=true;trSave({seen:1});
+    say(W.on?'Хорошо! Кнопка ❓ покажет, как играть':'Хорошо! 🎨 вверху — вход в параллельный мир, а там ❓ покажет, как играть');
+    return;
+  }
+  vib(10);ac();trStart(b.getAttribute('data-k'));
 });
 document.querySelector('.tr-skip').onclick=function(){trEnd(false)};
 $('help').onclick=function(){bounce($('help'));trOpenPick()};
@@ -2531,25 +2550,28 @@ document.addEventListener('pointerdown',function(e){
   var t=e.target;if(t&&t.closest&&t.closest('.tr-bubble,.tr-skip'))return;
   TR.pc++;
 },true);
-/* первый вход в мир: предлагаем обучение, когда экран спокоен (заставка и запрос микрофона закрыты) */
-function trWorld(on){
-  if(on)$('portal').classList.remove('hint');
-  if(!on){trEnd(false,true);$('tourPick').hidden=true;clearTimeout(TR.autoT);return}
+/* новичку предлагаем обучение, когда экран спокоен: заставка и запрос микрофона закрыты, ничего не записывается */
+function trOffer(){
   if(trSaved().seen||TR.picked)return;
   TR.tries=0;
   (function wait(){
     clearTimeout(TR.autoT);
     TR.autoT=setTimeout(function(){
-      if(!W.on||trSaved().seen)return;
-      if($('gate').classList.contains('hide')&&!document.getElementById('splash')){TR.picked=true;$('tourPick').hidden=false;return}
-      if(++TR.tries<40)wait();
+      if(trSaved().seen||TR.picked)return;
+      if($('gate').classList.contains('hide')&&!document.getElementById('splash')&&state==='idle'&&TR.i<0){TR.picked=true;trOpenPick('ask');return}
+      if(++TR.tries<900)wait();
     },700);
   })();
+}
+function trWorld(on){
+  if(on){$('portal').classList.remove('hint');trOffer();return}
+  trEnd(false,true);
 }
 
 /* ---------- старт: подсказка на портале для тех, кто ещё не заходил; восстановление мира ---------- */
 if(!trSaved().seen)$('portal').classList.add('hint');
 try{if(localStorage.getItem(WKEY)==='1')wApply(true)}catch(e){try{console.error(e)}catch(x){}}
+trOffer();
 
 /* ---------- тестовый вход: только с #sa-test в адресе ---------- */
 if(location.hash.indexOf('#sa-test')===0){
@@ -2580,7 +2602,7 @@ if(location.hash.indexOf('#sa-test')===0){
     vol:function(){return VOL},temp:function(){return TEMP},hist:function(){return hist},thumb:function(){return thumbOf(rawBuf)},
     brush:function(){return W.br},ripples:function(){return W.ripples.length},
     cost:function(){return W.cost},still:function(){return W.still},keepOk:function(){return !!W.keepOk},taps:function(v){if(v)AR.taps=v;return AR.taps},
-    tour:{state:function(){return {i:TR.i,kind:TR.kind,n:TR.steps?TR.steps.length:0,text:TR.lastText,pick:!$('tourPick').hidden,on:$('tour').className,sel:TR.steps&&TR.i>=0?TR.steps[TR.i].sel:''}},start:trStart,fast:function(v){TR.stuckMs=v},saved:trSaved,reset:function(){try{localStorage.removeItem(TRK)}catch(e){}TR.picked=false},texts:function(k){return (k==='kid'?trKid():trAdult()).map(function(s){return typeof s.text==='function'?s.text():s.text})},demo:loadDemo,taps:function(){return W.taps||0}},
+    tour:{state:function(){return {i:TR.i,kind:TR.kind,n:TR.steps?TR.steps.length:0,text:TR.lastText,pick:!$('tourPick').hidden,stage:TR.stage,on:$('tour').className,sel:TR.steps&&TR.i>=0?TR.steps[TR.i].sel:''}},start:trStart,fast:function(v){TR.stuckMs=v},saved:trSaved,reset:function(){try{localStorage.removeItem(TRK)}catch(e){}TR.picked=false},offer:function(){TR.picked=false;trOffer()},texts:function(k){return (k==='kid'?trKid():trAdult()).map(function(s){return typeof s.text==='function'?s.text():s.text})},demo:loadDemo,taps:function(){return W.taps||0}},
     ui:function(){showResult();refreshTiles();setTab('wave',true)},
     world:{set:function(on){wSet(on,true)},play:function(){play()},stats:wStats,
       png:function(){
