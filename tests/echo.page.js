@@ -39,9 +39,10 @@
     check('E3b касание сразу звучит (предпросмотр)',T.ec.previews()>p0,'');
     check('E3c мера случайности у одной точки — «предсказуемо»',$('ecEntTxt').textContent==='предсказуемо','энтропия '+T.ec.snap().entropy.toFixed(3));
 
-    /* слушаем: включаем выключатель — эхо слева на 0,25 с */
-    btn('#artistSw');
-    check('E4 выключатель включает режим в мире',T.ec.on()&&$('artistSw').getAttribute('aria-checked')==='true','');
+    /* слушаем: первый мазок сам включил «Эхо рисую я» — эхо слева на 0,25 с */
+    check('E4 первый мазок сам включает «Эхо рисую я»',T.ec.on()&&$('artistSw').getAttribute('aria-checked')==='true','');
+    btn('#artistSw');var swOff=!T.ec.on();btn('#artistSw');
+    check('E4b выключатель по-прежнему выключает и включает',swOff&&T.ec.on(),'');
     var A=await T.render(),AL=A.getChannelData(0),AR2=A.getChannelData(1);
     var eL=energy(AL,0.18,0.42,sr),eR=energy(AR2,0.18,0.42,sr),dry=energy(AL,0,0.12,sr);
     check('E5 нарисованное голубым пером слышно: эхо ≈ 0,25 с в левом ухе',eL>0.2*dry&&eR<0.02*eL,'эхо/оригинал='+(eL/dry).toFixed(2)+' R/L='+(eR/eL).toExponential(1));

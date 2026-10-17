@@ -26,7 +26,7 @@
       /* P1. стоимость кадра мира со всем сразу: эффекты, холст эха, эхо в звуке, звук рисует */
       T.world.set(true);await sleep(250);
       document.querySelector('#ecPre [data-pre=rain]').click();
-      $('artistSw').click();
+      if(!T.ec.on())$('artistSw').click();   /* картина сама включает эхо */
       T.fx([['echo',2],['cave',2],['water',1]]);
       T.world.play();
       var costs=[],t0=performance.now();

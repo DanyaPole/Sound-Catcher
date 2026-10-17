@@ -4,7 +4,7 @@
    • http://localhost:8080 — на этом компьютере (микрофон работает: localhost считается безопасным адресом)
    • https://<адрес-компьютера>:8443 — для телефона по Wi-Fi (микрофон требует HTTPS; сертификат самоподписанный —
      в браузере телефона нужно один раз нажать «Дополнительно → Всё равно открыть»)
-   Отдаётся только index.html: остальные файлы проекта по сети не видны. */
+   Отдаются только файлы сайта (страница, значки, манифест): остальные файлы проекта по сети не видны. */
 const http=require('http'),https=require('https'),fs=require('fs'),path=require('path'),os=require('os');
 const {execFileSync,spawn}=require('child_process');
 const ROOT=__dirname,CERTS=path.join(ROOT,'.certs');
@@ -36,11 +36,15 @@ function certFor(ips){
     return {key:fs.readFileSync(key),cert:fs.readFileSync(crt)};
   }catch(e){return null}
 }
+/* только то, что лежит на сайте: страница, значки и манифест */
+const PUBLIC={'/index.html':'text/html; charset=utf-8','/icon.svg':'image/svg+xml','/icon-192.png':'image/png','/icon-512.png':'image/png',
+  '/apple-touch-icon.png':'image/png','/manifest.json':'application/manifest+json'};
 function handler(req,res){
-  const u=req.url.split('?')[0].split('#')[0];
-  if(u==='/'||u==='/index.html'){
-    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});
-    fs.createReadStream(path.join(ROOT,'index.html')).pipe(res);return;
+  let u=req.url.split('?')[0].split('#')[0];
+  if(u==='/')u='/index.html';
+  if(PUBLIC[u]){
+    res.writeHead(200,{'Content-Type':PUBLIC[u],'Cache-Control':'no-store'});
+    fs.createReadStream(path.join(ROOT,u.slice(1))).pipe(res);return;
   }
   if(u==='/favicon.ico'){res.writeHead(204);res.end();return}
   res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Нет такого файла');

@@ -4,7 +4,7 @@
 const {spawn}=require('child_process'),http=require('http'),fs=require('fs'),path=require('path'),os=require('os');
 const CHROME='C:/Program Files/Google/Chrome/Application/chrome.exe';
 const ROOT=path.resolve(__dirname,'..');
-const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript','.json':'application/json','.png':'image/png'};
+const MIME={'.html':'text/html; charset=utf-8','.js':'text/javascript','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'};
 
 function serve(){
   let onReport=null;const got=new Promise(r=>onReport=r);

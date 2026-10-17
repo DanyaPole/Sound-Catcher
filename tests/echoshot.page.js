@@ -7,6 +7,6 @@
   T.load([L,new Float32Array(L)],sr);T.fx([]);T.out(1,0);T.ui();T.world.set(true);
   document.querySelector('#ecPre [data-pre=mirror]').click();
   document.querySelector('#ecPal [data-paint=amber]').click();
-  document.querySelector('#artistSw').click();
+  if(!window.__SA.test.ec.on())document.querySelector('#artistSw').click();
   $('echoBox').scrollIntoView();
 })();
