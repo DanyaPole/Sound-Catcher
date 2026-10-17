@@ -130,7 +130,7 @@ SA_PRESETS.forEach(name=>t('«'+name+'»: непустой, детерминир
 }));
 t('«Классика»: эхо в 0,28·k с',()=>{
   const cv=saCanvas();saPreset(cv,'classic');const p=saPlan(saSnapshot(cv),4,{influence:1,taps:400});
-  p.forEach(e=>{const k=Math.round(e.t/0.28);assert(k>=1&&k<=8&&Math.abs(e.t-0.28*k)<0.04,'t='+e.t)});
+  p.forEach(e=>{const k=Math.round(e.t/0.28);assert(k>=1&&k<=8&&Math.abs(e.t-0.28*k)<0.06,'t='+e.t)});
 });
 t('«Пинг-понг»: чередуются левое и правое',()=>{
   const cv=saCanvas();saPreset(cv,'pingpong');const p=saPlan(saSnapshot(cv),4,{influence:1,taps:200});
