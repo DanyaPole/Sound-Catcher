@@ -1356,6 +1356,22 @@ function restore(){
 restore();
 window.addEventListener('resize',function(){if(fx.classList.contains('show'))renderHist()});
 
+/* ---------- тестовый вход: только с #sa-test в адресе ---------- */
+if(location.hash.indexOf('#sa-test')===0){
+  var saRun=/run=([\w-]+)/.exec(location.hash);
+  window.__SA={test:{
+    load:function(chs,sr){
+      var b=ac().createBuffer(chs.length,chs[0].length,sr),i;
+      for(i=0;i<chs.length;i++)b.copyToChannel(chs[i],i);
+      rawBuf=b;cleanBuf=null;cleanOn=false;gen++;applyBuf();
+    },
+    fx:function(list){active=list.map(function(a){return {id:a[0],lvl:a[1]}})},
+    out:function(v,t){VOL=v;TEMP=t},
+    render:function(){return renderWav(1)}
+  }};
+  if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
+}
+
 /* ---------- жизненный цикл ---------- */
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){
