@@ -25,7 +25,7 @@
     T.fx([]);T.out(1,0);
     var PR=['classic','rain','mountains','pingpong','double','cloud','mirror'];
     for(var q=0;q<PR.length;q++){
-      T.artist({on:true,seed:2026,influence:1,blur:0,preset:PR[q]});
+      T.taps(24);T.artist({on:true,seed:2026,influence:1,blur:0,preset:PR[q]});
       var ra=await T.render();out['art-'+PR[q]]={h:hash(ra),rms:rms(ra),stable:false};
     }
     T.artist({on:false});

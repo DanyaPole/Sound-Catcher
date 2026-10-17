@@ -225,6 +225,8 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 #portal:active,#wsnd:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
 #wsnd{right:68px;background:#7c4dff;display:none;font-size:20px}
 #wsnd.off{opacity:.5}
+#shareArt{display:none;width:60px;height:60px;font-size:26px;background:#7c4dff;box-shadow:0 6px 0 #5632c4}
+body.world #shareArt{display:flex}
 #world{position:fixed;inset:0;width:100%;height:100%;z-index:-1;display:none;pointer-events:none}
 body.world #world{display:block}
 #worldpaint{position:fixed;inset:0;width:100%;height:100%;z-index:8;display:none;pointer-events:none;mix-blend-mode:screen;opacity:.7}
@@ -372,6 +374,7 @@ body.world .ends{opacity:.7}
     <button id="play" class="rb" aria-label="Играть">▶</button>
     <canvas id="wave"></canvas>
     <button id="share" class="rb" aria-label="Поделиться">📤</button>
+    <button id="shareArt" class="rb" aria-label="Поделиться картиной звука">🖼️</button>
   </div>
   <div class="sec">🕘 Мои звуки</div>
   <div class="hist" id="hist"></div>
@@ -957,7 +960,7 @@ function build(c,dest){
       ts.playbackRate.value=rate*Math.pow(2,e.semis/12);
       vibs.forEach(function(v){v.connect(ts.playbackRate)});
       var last=ts;
-      var sh=filt('highshelf',3000);sh.gain.value=e.bright*ARTIST.brightDb;last.connect(sh);last=sh;
+      if(Math.abs(e.bright)>0.04){var sh=filt('highshelf',3000);sh.gain.value=e.bright*ARTIST.brightDb;last.connect(sh);last=sh}
       if(c.createStereoPanner){var pn=node(c.createStereoPanner());pn.pan.value=e.pan;last.connect(pn);last=pn}
       var tg=gain(e.gain);last.connect(tg);tg.connect(inp);
       taps.push({s:ts,when:e.t});
@@ -1647,7 +1650,8 @@ function saBrush(fx){
 /*SA-CORE-END*/
 
 /* ---------- Художник звука: связка с Web Audio ---------- */
-var AR={on:false,want:false,seed:0,influence:1,blur:0,cv:null,snap:null,snapVer:-1,planKey:'',plan:null};
+var AR={on:false,want:false,seed:0,influence:1,blur:0,cv:null,snap:null,snapVer:-1,planKey:'',plan:null,
+  taps:(function(){var hc=0;try{hc=navigator.hardwareConcurrency||0}catch(e){}return hc>=8?24:(hc>=6||!hc?18:12)})()};
 function artistCanvas(){if(!AR.cv){AR.cv=saCanvas();saPreset(AR.cv,'classic')}return AR.cv}
 function artistSeed(){return AR.seed?AR.seed>>>0:(Math.imul(gen+1,2654435761)>>>0)}
 /* план эх для текущего звука; null, если режим выключен */
@@ -1655,15 +1659,15 @@ function artistPlan(){
   if(!AR.on)return null;
   var cv=artistCanvas();
   if(AR.snapVer!==cv.ver){AR.snap=saSnapshot(cv);AR.snapVer=cv.ver}
-  var k=cv.ver+':'+artistSeed()+':'+AR.influence+':'+AR.blur;
-  if(AR.planKey!==k){AR.plan=saPlan(AR.snap,artistSeed(),{influence:AR.influence,blur:AR.blur});AR.planKey=k}
+  var k=cv.ver+':'+artistSeed()+':'+AR.influence+':'+AR.blur+':'+AR.taps;
+  if(AR.planKey!==k){AR.plan=saPlan(AR.snap,artistSeed(),{influence:AR.influence,blur:AR.blur,taps:AR.taps});AR.planKey=k}
   return AR.plan;
 }
 
 /* ---------- Параллельный мир: всё, что видно, берётся из реального звука ---------- */
 var W={on:false,cv:null,g:null,pcv:null,pg:null,fcv:null,fg:null,w:0,h:0,dpr:1,raf:0,last:0,n:0,lvl:0,td:null,fd:null,
   bands:new Float32Array(28),px:-1,py:0,src:'',ripples:[],soundOn:true,still:false,recAn:null,recSrc:null,
-  dtAvg:16,dtN:0,half:false,skip:false,wired:false,x:-1,dirty:true,prevRms:0,onsetT:0,brKey:'',br:null,gest:null,hudT:0};
+  dtAvg:16,dtN:0,half:false,skip:false,wired:false,x:-1,dirty:true,prevRms:0,cost:0,keep:null,onsetT:0,brKey:'',br:null,gest:null,hudT:0};
 var WBANDS=28,WKEY='zv-world',WNOTES=[0,2,4,7,9,12,14,16,19,21];
 function wStill(){try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}}
 function wHue(i){return i/WBANDS*280-TEMP*25}
@@ -1697,7 +1701,7 @@ var WBLOBS=[[0.2,0.25,'#7c4dff',0.07,0.9,-1],[0.8,0.3,'#ff3d71',0.05,1.3,1],[0.3
 function wFrame(now){
   if(!W.on)return;
   W.raf=requestAnimationFrame(wFrame);
-  var dt=now-W.last;W.last=now;
+  var dt=now-W.last;W.last=now;var cost0=performance.now();
   /* если телефон не тянет — переходим на 30 кадров/с */
   if(dt<200){W.dtAvg+=(dt-W.dtAvg)*0.1;if(++W.dtN===45&&W.dtAvg>28)W.half=true}
   var an=null,x=-1,src='';
@@ -1714,7 +1718,7 @@ function wFrame(now){
   /* кисть текущих эффектов (из реальных параметров DSP) */
   var bk=fxKey();if(bk!==W.brKey||!W.br){W.brKey=bk;W.br=saBrush(wFxMap())}
   var br=W.br,by=h/2,cx=0;
-  if(src!==W.src){if(src)pg.clearRect(0,0,w,h);W.src=src;W.px=-1}
+  if(src!==W.src){if(W.src&&!src)wKeep();if(src)pg.clearRect(0,0,w,h);W.src=src;W.px=-1}
   if(an&&x>=0){
     var pt=src==='play'?playT:x*MAX/1000,dur=src==='play'?srcBuf().duration/rateOf():MAX/1000,pps=w/dur;
     cx=x*w;
@@ -1790,7 +1794,7 @@ function wFrame(now){
     fg.strokeStyle='hsla('+rp.hue+',95%,70%,'+(1-age)*0.9*(rp.a||1)+')';fg.lineWidth=3;
     fg.beginPath();fg.arc(rp.x,rp.y,W.still?10:8+age*90,0,6.2832);fg.stroke();
   }
-  ecFrame(now);if(W.hudT&&now>W.hudT){W.hudT=0;$('whud').classList.remove('show')}
+  ecFrame(now);W.cost+=(performance.now()-cost0-W.cost)*0.1;if(W.hudT&&now>W.hudT){W.hudT=0;$('whud').classList.remove('show')}
 }
 /* касания мира. Касание — круг и нота пентатоники (вверх выше, влево/вправо в то же ухо).
    Горизонтальный свайп по пустому месту — температура звука (влево холоднее, вправо теплее) */
@@ -1899,6 +1903,70 @@ function wStats(){
   return {painted:n,total:tot,lvl:W.lvl,x:W.x,src:W.src};
 }
 
+/* ---------- картина звука как PNG: то, что звук нарисовал, и холст эха (если он включён) ---------- */
+function wKeep(){
+  if(!W.pcv||!W.pg)return;
+  if(!W.keep)W.keep=document.createElement('canvas');
+  W.keep.width=W.pcv.width;W.keep.height=W.pcv.height;
+  W.keep.getContext('2d').drawImage(W.pcv,0,0);
+  W.keepOk=wStats().painted>40;
+  W.keepFx=active.map(function(a){return EMO[a.id]+' '+NAME[a.id]}).join('   ');
+}
+function wArt(cb){
+  var S=1080,HH=1350,c=document.createElement('canvas');c.width=S;c.height=HH;
+  var g=c.getContext('2d'),bg=g.createLinearGradient(0,0,0,HH);
+  bg.addColorStop(0,'#0a0720');bg.addColorStop(1,'#0d1138');g.fillStyle=bg;g.fillRect(0,0,S,HH);
+  [[0.2,0.12,'#7c4dff'],[0.85,0.2,'#ff3d71'],[0.3,0.9,'#22b8cf'],[0.8,0.95,'#ff9f1c']].forEach(function(b){
+    var gr=g.createRadialGradient(b[0]*S,b[1]*HH,0,b[0]*S,b[1]*HH,520);
+    gr.addColorStop(0,b[2]);gr.addColorStop(1,'rgba(0,0,0,0)');g.globalAlpha=0.22;g.fillStyle=gr;g.fillRect(0,0,S,HH);g.globalAlpha=1;
+  });
+  g.textBaseline='alphabetic';g.textAlign='left';
+  g.fillStyle='#fff';g.font='800 64px sans-serif';g.fillText('Звуколовка',60,112);
+  g.fillStyle='rgba(255,255,255,.8)';g.font='700 32px sans-serif';g.fillText('Картина моего звука',62,160);
+  /* то, что нарисовал звук: время слева направо, высота — вертикаль */
+  g.fillStyle='rgba(10,7,32,.85)';g.fillRect(40,190,1000,570);
+  if(W.keep)g.drawImage(W.keep,0,0,W.keep.width,W.keep.height,40,190,1000,570);
+  g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=2;g.strokeRect(40,190,1000,570);
+  g.fillStyle='rgba(255,255,255,.7)';g.font='700 24px sans-serif';g.fillText('время →',56,740);g.textAlign='right';g.fillText('выше — тоньше',1024,222);g.textAlign='left';
+  /* холст эха, если режим включён */
+  var y=790;
+  if(AR.want&&EC.ready&&EC.pcv.width){
+    var ew=704,eh=440,ex=(S-ew)/2;
+    ecTopDraw(0,true);g.fillStyle='#0b0a22';g.fillRect(ex,y,ew,eh);g.drawImage(EC.pcv,0,0,EC.pcv.width,EC.pcv.height,ex,y,ew,eh);g.drawImage(EC.tcv,0,0,EC.tcv.width,EC.tcv.height,ex,y,ew,eh);
+    g.strokeStyle='rgba(255,255,255,.25)';g.strokeRect(ex,y,ew,eh);
+    g.fillStyle='rgba(255,255,255,.85)';g.font='700 26px sans-serif';g.textAlign='center';g.fillText('Куда я нарисовал эхо',S/2,y+eh+36);EC.dirty=true;W.dirty=true;
+  }
+  g.textAlign='center';g.font='700 34px sans-serif';g.fillStyle='rgba(255,255,255,.9)';
+  g.fillText(W.keepFx||'Как было',S/2,HH-34);
+  c.toBlob(cb,'image/png');
+}
+function sendArt(blob){
+  if(!blob){say('Не вышло сохранить картину 😕');return}
+  var file=null;
+  try{file=new File([blob],'zvukolovka-kartina.png',{type:'image/png'})}catch(e){}
+  if(file&&navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:'Картина моего звука 🎨'}).then(function(){say('Отправлено! 🎉')}).catch(function(e){
+      if(e&&e.name==='AbortError')return;
+      sendArtDl(blob);
+    });
+  }else sendArtDl(blob);
+}
+function sendArtDl(blob){
+  try{
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='zvukolovka-kartina.png';
+    body.appendChild(a);a.click();
+    setTimeout(function(){try{a.remove();URL.revokeObjectURL(a.href)}catch(e){}},1500);
+    say('Картина сохранена 🖼️');
+  }catch(e){say('Не вышло сохранить картину 😕')}
+}
+$('shareArt').onclick=function(){
+  bounce($('shareArt'));
+  if(W.src)wKeep();
+  if(!W.keep||!W.keepOk){say('Сначала проиграй звук — он нарисует картину 🎨');return}
+  say('Готовлю картину… 🖼️');
+  wArt(sendArt);
+};
+
 /* ---------- галерея: запись как маленькая картина (36 × 12 из настоящего спектра) ---------- */
 var TH_C=36,TH_B=12;
 function thumbOf(b){
@@ -1988,7 +2056,7 @@ function ecPaintDraw(){
   EC.pcv.style.filter=AR.blur>0?'blur('+(AR.blur*(w+h)/2*0.9).toFixed(1)+'px)':'none';
 }
 /* оверлей: линия горизонта, шкала времени, подписи, наведение, развёртка, всплески */
-function ecTopDraw(now,playT0){
+function ecTopDraw(now,quiet){
   if(!EC.ready||!EC.w)return;
   var g=EC.tg,w=EC.w,h=EC.h,i;
   g.setTransform(EC.dpr,0,0,EC.dpr,0,0);g.clearRect(0,0,w,h);
@@ -2003,15 +2071,15 @@ function ecTopDraw(now,playT0){
   var cv=artistCanvas();
   if(artistSnap().total===0){g.font='800 14px sans-serif';g.fillStyle='rgba(255,255,255,.85)';g.fillText('Нарисуй, где должно отозваться эхо',w/2,h/2)}
   /* кисть входа: у левого края живёт сам звук (по реальному уровню) */
-  if(W.lvl>0.02){var lg=g.createLinearGradient(0,0,14,0);lg.addColorStop(0,'rgba(255,255,255,'+Math.min(0.8,W.lvl)+')');lg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=lg;g.fillRect(0,h*0.5-h*0.3*W.lvl,14,h*0.6*W.lvl)}
+  if(!quiet&&W.lvl>0.02){var lg=g.createLinearGradient(0,0,14,0);lg.addColorStop(0,'rgba(255,255,255,'+Math.min(0.8,W.lvl)+')');lg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=lg;g.fillRect(0,h*0.5-h*0.3*W.lvl,14,h*0.6*W.lvl)}
   /* развёртка: время звучания эха от начала записи, ровно со скоростью проигрыша */
-  if(AR.on&&playT>=0){
+  if(!quiet&&AR.on&&playT>=0){
     var sx=Math.min(1,playT/ARTIST.maxTime)*w;
     var sg=g.createLinearGradient(sx-12,0,sx+1,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(1,'rgba(255,255,255,.7)');
     g.fillStyle=sg;g.fillRect(sx-12,0,13,h);
   }
   /* всплески эх: появляются ровно когда эхо зазвучало; нарастание ≥ 60 мс, размер ограничен */
-  for(i=EC.sp.length-1;i>=0;i--){
+  for(i=quiet?-1:EC.sp.length-1;i>=0;i--){
     var s=EC.sp[i],age=(now-s.t)/900;
     if(age>=1){EC.sp.splice(i,1);continue}
     var rise=Math.min(1,(now-s.t)/60),col=ecPanColor(s.pan,1),a=(1-age)*rise,r=6+s.gain*22,x=s.x*w,y=s.y*h;
@@ -2020,7 +2088,7 @@ function ecTopDraw(now,playT0){
     g.fillStyle=rg;g.beginPath();g.arc(x,y,r,0,6.2832);g.fill();
     if(!W.still){g.strokeStyle='rgba('+col[0]+','+col[1]+','+col[2]+','+0.7*(1-age)+')';g.lineWidth=2;g.beginPath();g.arc(x,y,r+age*26,0,6.2832);g.stroke()}
   }
-  if(EC.hx>=0){g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=1;g.beginPath();g.arc(EC.hx*w,EC.hy*h,6,0,6.2832);g.stroke()}
+  if(!quiet&&EC.hx>=0){g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=1;g.beginPath();g.arc(EC.hx*w,EC.hy*h,6,0,6.2832);g.stroke()}
   EC.dirty=false;
 }
 function artistSnap(){
@@ -2257,6 +2325,7 @@ if(location.hash.indexOf('#sa-test')===0){
     ec:{log:function(){return EC.log},previews:function(){return EC.previews},splashes:function(){return EC.sp.length},plan:function(){return artistPlan()},cv:function(){return artistCanvas()},on:function(){return AR.on},snap:function(){return artistSnap()}},
     vol:function(){return VOL},temp:function(){return TEMP},hist:function(){return hist},thumb:function(){return thumbOf(rawBuf)},
     brush:function(){return W.br},ripples:function(){return W.ripples.length},
+    cost:function(){return W.cost},still:function(){return W.still},keepOk:function(){return !!W.keepOk},taps:function(v){if(v)AR.taps=v;return AR.taps},
     ui:function(){showResult();refreshTiles();setTab('wave',true)},
     world:{set:function(on){wSet(on,true)},play:function(){play()},stats:wStats,
       png:function(){
