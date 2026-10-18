@@ -91,6 +91,41 @@
     check('залипание: focus сбрасывает флаг, клик выбирает',lvl(high)===1,'data-l='+lvl(high));
     tipOffAll();
 
+    /* прокрутка: подсказка не остаётся на месте, когда плитка уезжает */
+    W.scrollTo(0,0);await sleep(150);tipOffAll();
+    var jit=D.querySelector('.t[data-id=ufo]');
+    pe(jit,'pointerdown',{x:40,y:400});pe(jit,'pointermove',{x:43,y:400});await sleep(700);
+    check('палец дрогнул на 3 px — долгое нажатие и подсказка живы',vis(tip)&&tip.textContent==='НЛО',tip.textContent);
+    W.scrollBy(0,150);await sleep(200);
+    check('долгое нажатие + прокрутка: подсказка скрыта',!vis(tip));
+    pe(jit,'pointerup',{x:43,y:400});await sleep(100);W.scrollTo(0,0);await sleep(150);tipOffAll();
+    var wah=D.querySelector('.t[data-id=wah]');
+    W.scrollTo(0,0);await sleep(150);
+    wah.focus();await sleep(400);
+    check('Tab/фокус на плитку вне экрана: подсказка видна (прокрутка браузера её не гасит)',vis(tip)&&tip.textContent==='Утка'&&wah.getBoundingClientRect().top<812,tip.textContent+' / '+Math.round(wah.getBoundingClientRect().top));
+    wah.blur();await sleep(50);W.scrollTo(0,0);await sleep(150);tipOffAll();
+    /* плавная прокрутка браузера после фокуса: подсказка едет за плиткой, а не гаснет */
+    D.documentElement.style.scrollBehavior='smooth';W.scrollTo(0,0);await sleep(900);
+    var spc=D.querySelector('.t[data-id=space]');
+    spc.focus();await sleep(1200);
+    var sr=spc.getBoundingClientRect(),tr=tip.getBoundingClientRect();
+    check('фокус при плавной прокрутке: подсказка видна у плитки',vis(tip)&&tip.textContent==='Космос'&&Math.abs((tr.left+tr.right)/2-(sr.left+sr.right)/2)<60&&(tr.bottom<=sr.top+1||tr.top>=sr.bottom-1),tip.textContent+' / плитка '+Math.round(sr.top)+', подсказка '+Math.round(tr.top));
+    spc.blur();await sleep(50);D.documentElement.style.scrollBehavior='';W.scrollTo(0,0);await sleep(300);tipOffAll();
+    var mt=D.querySelector('.t[data-id=trem]');
+    W.scrollTo(0,300);await sleep(150);
+    pe(mt,'pointerenter',{pt:'mouse'});await sleep(600);
+    check('мышь: подсказка показана перед прокруткой',vis(tip)&&tip.textContent==='Вертолёт',tip.textContent);
+    W.scrollBy(0,-120);await sleep(200);
+    check('мышь + прокрутка: подсказка скрыта',!vis(tip));
+    pe(mt,'pointerenter',{pt:'mouse'});await sleep(250);
+    var early=vis(tip);await sleep(300);
+    check('мышь: после прокрутки подсказка появляется снова через 0,4 с',!early&&vis(tip));
+    pe(mt,'pointerleave',{pt:'mouse'});
+    pe(mt,'pointerenter',{pt:'mouse'});await sleep(600);var was2=vis(tip);
+    W.dispatchEvent(new W.Event('resize'));
+    check('resize гасит подсказку',was2&&!vis(tip));
+    pe(mt,'pointerleave',{pt:'mouse'});W.scrollTo(0,0);await sleep(150);
+
     /* подписи по умолчанию выключены */
     var nms=D.querySelectorAll('#grid .t .nm');
     check('подписи: по умолчанию скрыты',nms.length===24&&!D.body.classList.contains('labels')&&Array.prototype.every.call(nms,function(n){return W.getComputedStyle(n).display==='none'}));

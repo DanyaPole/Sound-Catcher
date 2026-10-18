@@ -7,9 +7,9 @@
   function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
   var $=function(id){return D.getElementById(id)};
   function hash(ab){var h=2166136261>>>0,c,k;for(c=0;c<ab.numberOfChannels;c++){var d=ab.getChannelData(c),u=new Uint32Array(d.buffer,d.byteOffset,d.length);for(k=0;k<u.length;k++)h=Math.imul(h^u[k],16777619)>>>0}return h.toString(16)+':'+ab.length}
-  function chips(){return [].map.call(D.querySelectorAll('#now .chip:not(.calm) span'),function(s){return s.textContent})}
+  function chips(){return [].map.call(D.querySelectorAll('#nowList .chip:not(.calm) span'),function(s){return s.textContent})}
   function pick(id){var gb=D.querySelector('#hist .hs.gift');if(gb)gb.click();else $('demoBtn').click();var b=D.querySelector('#dpGrid [data-demo='+id+']');if(b)b.click()}
-  function calm(){return !!D.querySelector('#now .chip.calm')}
+  function calm(){return !!D.querySelector('#nowList .chip.calm')}
   try{
     try{localStorage.setItem('zv-tour','{"seen":1}');localStorage.removeItem('zv-curves');localStorage.removeItem('zv-echo')}catch(e){}
     var fr=D.createElement('iframe');
@@ -38,7 +38,7 @@
     T.slices.set({n:4,mode:'pre',order:[1,0,2,3],rev:[false,false,false,false]});await sleep(400);
     var c=chips();
     check('Q5 видны все настройки: эффект, сухо–мокро, температура, нарезка',c.length===4&&c.some(function(x){return /💧 70%/.test(x)})&&c.some(function(x){return /🌡️/.test(x)})&&c.some(function(x){return /✂️ 4/.test(x)}),c.join(' | '));
-    D.querySelector('#now .chip').click();await sleep(300);P.stop();
+    D.querySelector('#nowList .chip').click();await sleep(300);P.stop();
     check('Q6 ✕ на чипе выключает только его',T.player.state().fx===0&&chips().length===3&&!tile.classList.contains('sel'),chips().join(' | '));
     $('resetAll').click();await sleep(300);P.stop();
     var rs=await T.render();
@@ -73,8 +73,8 @@
     check('R7 Ctrl+Z отменяет и нарезку',!T.slices.state().on,JSON.stringify(T.slices.state().order));
     /* сравнение */
     $('ab').click();await sleep(150);
-    var abOn=C.ab(),lbl=D.querySelector('#now .lbl').textContent,dim=$('nowRow').classList.contains('ab'),pl=P.state().on;
-    check('R8 ⇄ — «как было»: кнопка жёлтая, строка бледнеет, звук играет',abOn&&dim&&/как было/.test(lbl)&&pl&&$('ab').getAttribute('aria-pressed')==='true',lbl);
+    var abOn=C.ab(),lbl=$('nowBtn').textContent,dim=$('nowRow').classList.contains('ab')&&$('nowList').classList.contains('ab'),pl=P.state().on;
+    check('R8 ⇄ — «как было»: кнопка жёлтая, плашки пунктиром, звук играет',abOn&&dim&&/как было/.test(lbl)&&pl&&$('ab').getAttribute('aria-pressed')==='true',lbl);
     var hb=C.his().past;
     $('ab').click();await sleep(150);P.stop();
     check('R9 ⇄ ещё раз — с эффектами; сравнение не пишет в историю',!C.ab()&&C.his().past===hb,'');

@@ -92,20 +92,30 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 #dock{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;width:min(100%,360px);box-sizing:border-box;padding:2px;border-radius:32px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
 body.world #dock{background:rgba(24,16,58,.8);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
 .nowr{gap:6px;padding:2px 4px 4px;box-sizing:border-box;width:100%}
-#now{flex:1;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;align-items:center;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:14px}
-#now::-webkit-scrollbar{display:none}
-#now .lbl{flex:none;font-size:13px;font-weight:700;opacity:.7;padding-left:6px}
-.chip{flex:none;min-height:44px;border:2px solid var(--vio);border-radius:999px;background:#fff;color:var(--ink);font-size:14px;padding:0 10px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
-.chip b{font-size:12px;opacity:.55}
-.chip.calm{border-color:transparent;background:transparent;cursor:default;opacity:.8}
-.nowr.ab #now{opacity:.45}
+#now{flex:1;min-width:0;display:flex}
+/* одна кнопка-счётчик; список плашек открывается под строкой */
+#nowBtn{flex:1;min-width:0;min-height:44px;border:2px solid var(--vio);border-radius:22px;background:#fff;color:var(--ink);font:inherit;font-size:14px;font-weight:700;line-height:1.15;padding:2px 8px;display:flex;align-items:center;justify-content:center;gap:4px;text-align:center;cursor:pointer}
+#nowBtn .nb2{display:flex;flex-direction:column;font-size:11px;white-space:nowrap}
+#nowBtn i{font-style:normal;font-size:12px;flex:none}
+#nowList{position:absolute;top:100%;left:0;right:0;margin-top:4px;z-index:8;box-sizing:border-box;max-height:50vh;overflow-y:auto;overflow-x:hidden;padding:8px;border-radius:24px;background:#fff;border:2px solid var(--vio);box-shadow:0 8px 20px rgba(0,0,0,.2);display:flex;flex-wrap:wrap;gap:6px;outline:none}
+#nowList[hidden]{display:none}
+.chip{flex:none;max-width:100%;min-height:44px;border:2px solid var(--vio);border-radius:999px;background:#fff;color:var(--ink);font-size:14px;padding:0 10px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.chip b{font-size:12px}
+.chip.calm{border-color:transparent;background:transparent;cursor:default}
+/* сравнение «как было»: эти плашки сейчас не звучат — пунктир и нейтральная серая заливка (текст полной непрозрачности) */
+#nowList.ab .chip{border-style:dashed;background:#eceaf3}
+#nowBtn:focus-visible,.chip:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .nowr .ub{min-width:44px;padding:0 2px}
 #ab[aria-pressed=true]{background:#ffd23f;color:var(--ink);box-shadow:0 5px 0 #d9a400}
 #resetAll,.nowr .ub{flex:none;min-width:44px;min-height:44px;border:0;border-radius:22px;background:var(--vio);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--viod)}
 #resetAll small,.nowr .ub small{font-size:10px;font-weight:700}
 #resetAll:disabled,.nowr .ub:disabled{opacity:.35;cursor:default}
+body.world #nowBtn{background:#2a2160;color:#fff;border-color:#a98bff}
+body.world #nowList{background:#231a52;border-color:#a98bff}
 body.world .chip{background:rgba(255,255,255,.1);color:#fff;border-color:#a98bff}
 body.world .chip.calm{background:transparent;border-color:transparent}
+body.world #nowList.ab .chip{background:#3a3366}
+body.world #nowBtn:focus-visible,body.world .chip:focus-visible{outline-color:#fff}
 .tbar{gap:8px;padding:4px;width:100%;box-sizing:border-box}
 #play{width:64px;height:64px;font-size:30px;background:var(--ok);box-shadow:0 6px 0 var(--okd);padding-left:4px}
 #play.st{padding-left:0}
@@ -610,9 +620,10 @@ body.world #wNote{display:block}
   <div class="row nowr" id="nowRow">
     <button class="ub" id="undo" aria-label="Отменить" disabled>↶<small>назад</small></button>
     <button class="ub" id="redo" aria-label="Вернуть" disabled>↷<small>вперёд</small></button>
-    <div id="now" aria-live="polite" aria-label="Что сейчас звучит"></div>
+    <div id="now" aria-live="polite" aria-label="Что сейчас звучит"><button id="nowBtn" aria-expanded="false" aria-controls="nowList"></button></div>
     <button id="resetAll" aria-label="Сбросить всё: звук как был">↺<small>всё</small></button>
   </div>
+  <div id="nowList" hidden role="group" aria-label="Список: что сейчас звучит" tabindex="-1"></div>
   </div>
   <div class="row shr">
     <button id="share" class="pill" aria-label="Поделиться">📤 Отправить звук</button>
@@ -970,19 +981,26 @@ function setTab(k,quiet){
 var tiles={};
 /* название эффекта: подсказка при наведении мыши, при фокусе с клавиатуры и при долгом нажатии (≈0,5 с); без анимации */
 var TXT={cfg:'Настройки',labels:'Подписи под плитками'};
-var tipEl=$('fxtip'),tipT=0,tipH=0,lpT=0,lpFired=false,lpX=0,lpY=0;
+var tipEl=$('fxtip'),tipT=0,tipH=0,lpT=0,lpFired=false,lpX=0,lpY=0,tipB=null,tipTxt='',tipTop=0,tipAt=0,tipKb=false;
 function tipOff(){clearTimeout(tipT);clearTimeout(lpT);clearTimeout(tipH);tipEl.hidden=true}
-function tipShow(b,txt){
-  clearTimeout(tipH);tipEl.textContent=txt;tipEl.hidden=false;
+function tipShow(b,txt,kb){
+  clearTimeout(tipH);tipB=b;tipTxt=txt;tipAt=performance.now();tipKb=!!kb;tipEl.textContent=txt;tipEl.hidden=false;
   var r=b.getBoundingClientRect(),w=tipEl.offsetWidth,h=tipEl.offsetHeight,vw=document.documentElement.clientWidth;
   var x=Math.max(6,Math.min(vw-w-6,r.left+r.width/2-w/2)),y=r.top-h-8;
   if(y<6)y=r.bottom+8;
-  tipEl.style.left=x+'px';tipEl.style.top=y+'px';
+  tipEl.style.left=x+'px';tipEl.style.top=y+'px';tipTop=r.top;
 }
+/* страница прокручена — подсказка гаснет, если плитка уехала больше чем на 2 px (дрожь пальца и Tab на плитку вне экрана не в счёт) */
+window.addEventListener('scroll',function(){
+  if(tipEl.hidden||!tipB)return;
+  if(tipKb&&performance.now()-tipAt<150){tipShow(tipB,tipTxt,true);return}
+  if(Math.abs(tipB.getBoundingClientRect().top-tipTop)>2)tipOff();
+},{capture:true,passive:true});
+window.addEventListener('resize',tipOff);
 function nameTip(b,txt){
   b.addEventListener('pointerenter',function(e){if(e.pointerType!=='mouse')return;clearTimeout(tipT);tipT=setTimeout(function(){tipShow(b,txt)},400)});
   b.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse')tipOff()});
-  b.addEventListener('focus',function(){lpFired=false;var kb=false;try{kb=b.matches(':focus-visible')}catch(e){}if(kb)tipShow(b,txt)});
+  b.addEventListener('focus',function(){lpFired=false;var kb=false;try{kb=b.matches(':focus-visible')}catch(e){}if(kb)tipShow(b,txt,true)});
   b.addEventListener('blur',tipOff);
   b.addEventListener('keydown',function(){lpFired=false});
   b.addEventListener('pointerdown',function(e){
@@ -3620,18 +3638,45 @@ function nowItems(){
   if(crvOn())L.push(['〰️ '+LANES.filter(function(l){return crvLaneOn(l.id)}).map(function(l){return l.e}).join(''),function(){LANES.forEach(function(l){CV.d[l.id].fill(l.neu)});crvChanged(false)}]);
   return L;
 }
+var NOWOPEN=false;
 function nowDraw(){
-  var box=$('now'),L=nowItems();box.innerHTML='';
-  var lb=document.createElement('span');lb.className='lbl';lb.textContent=AB?'Сейчас: как было. С эффектами:':'Звучит:';box.appendChild(lb);
-  if(!L.length){var c=document.createElement('span');c.className='chip calm';c.textContent='👂 как было';box.appendChild(c)}
+  var L=nowItems(),btn=$('nowBtn'),list=$('nowList'),n=L.length,fi=-1,i;
+  if(NOWOPEN&&list.contains(document.activeElement))fi=Array.prototype.indexOf.call(list.children,document.activeElement);
+  var arrow=NOWOPEN?'▴':'▾',cnt=n?String(n):'как было';
+  if(AB){
+    btn.innerHTML='<span class="nb2"><span>Сейчас: как было</span><span>С эффектами: '+(n||'нет')+'</span></span><i aria-hidden="true">'+arrow+'</i>';
+    btn.setAttribute('aria-label','Сейчас: как было. С эффектами: '+(n||'нет'));
+  }else{
+    btn.innerHTML='<span>Звучит: '+cnt+'</span><i aria-hidden="true">'+arrow+'</i>';
+    btn.setAttribute('aria-label','Звучит: '+cnt);
+  }
+  list.innerHTML='';list.classList.toggle('ab',AB);
+  if(!n){var c=document.createElement('span');c.className='chip calm';c.textContent='👂 как было';list.appendChild(c)}
   L.forEach(function(it){
     var b=document.createElement('button');b.className='chip';b.setAttribute('aria-label','Выключить: '+it[0]);
     b.innerHTML='<span></span><b>✕</b>';b.firstChild.textContent=it[0];
     b.onclick=function(){vib(8);it[1]();say('✕ Выключил: '+it[0]);nowTick();if(buffer)play()};
-    box.appendChild(b);
+    list.appendChild(b);
   });
-  $('resetAll').disabled=!L.length;
+  if(fi>=0){var ch=list.querySelectorAll('.chip:not(.calm)');(ch[Math.min(fi,ch.length-1)]||list).focus()}
+  $('resetAll').disabled=!n;
 }
+/* список плашек: открывается кнопкой, закрывается Esc, касанием вне дока и повторным нажатием */
+function nowOpen(on,back){
+  NOWOPEN=on;$('nowList').hidden=!on;$('nowBtn').setAttribute('aria-expanded',on?'true':'false');nowDraw();
+  if(on){var f=$('nowList').querySelector('.chip:not(.calm)');(f||$('nowList')).focus()}
+  else if(back)$('nowBtn').focus();
+}
+$('nowBtn').onclick=function(){vib(8);nowOpen(!NOWOPEN,true)};
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&NOWOPEN)nowOpen(false,true)});
+/* касание вне дока только закрывает список и не доходит до плиток под пальцем */
+document.addEventListener('pointerdown',function(e){
+  if(!NOWOPEN||$('dock').contains(e.target))return;
+  nowOpen(false,false);e.stopPropagation();
+  var t=0;function eat(ev){ev.stopPropagation();ev.preventDefault();stop()}
+  function stop(){clearTimeout(t);document.removeEventListener('click',eat,true)}
+  document.addEventListener('click',eat,true);t=setTimeout(stop,700);
+},true);
 function resetAll(){
   var L=nowItems();if(!L.length)return;
   L.forEach(function(it){it[1]()});
@@ -3711,7 +3756,7 @@ $('ab').onclick=function(){if(!buffer)return;vib(8);abSet(!AB)};
 function nowTick(){
   if(!buffer)return;
   var s=sndSig(),now=performance.now();
-  if(HIS.g!==gen){HIS.g=gen;HIS.past=[];HIS.fut=[];HIS.cur=sndSnap();HIS.sig=s;HIS.pend='';hisUI();if(AB)abSet(false,true)}
+  if(HIS.g!==gen){if(NOWOPEN)nowOpen(false,false);HIS.g=gen;HIS.past=[];HIS.fut=[];HIS.cur=sndSnap();HIS.sig=s;HIS.pend='';hisUI();if(AB)abSet(false,true)}
   if(AB&&s!==abSig)abSet(false,true);
   if(s!==HIS.sig&&!hisBusy()){
     if(HIS.pend!==s){HIS.pend=s;HIS.pt=now}

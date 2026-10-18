@@ -67,9 +67,21 @@ async function shotRun(mode,bg){
     if(n<200)throw new Error('пикселей подписей слишком мало: '+n+' ('+mode+') — снимки не совпали');
     if(worst<4.5)bad++;
   }
+  /* строка «Звучит»: по вычисленным стилям, обе темы */
+  const {run}=require('./lib');
+  const nowRows=[];let nowBad=0;
+  for(const mode of ['light','world']){
+    const r=await run('contrast&now=1&mode='+mode,90000,['--window-size=500,900']);
+    if(!r.ok)throw new Error('now '+mode+': '+r.error);
+    r.now.forEach(x=>{nowRows.push([mode,x]);if(x.ratio<4.5)nowBad++});
+  }
   console.log('| Тема | Пикселей подписи | Цвет подписи | Мин. непрозрачность | Было (opacity .6), худшая точка | Стало, худшая точка |');
   console.log('|---|---|---|---|---|---|');
   rows.forEach(r=>console.log('| '+(r.mode==='light'?'светлая':'«параллельный мир»')+' | '+r.n+' | '+r.color+' | '+r.eff.toFixed(2)+' | '+r.worstOld.toFixed(2)+':1 | **'+r.worst.toFixed(2)+':1** |'));
-  console.log('\nЦель ≥ 4,5:1: '+(bad?'НЕ выполнена':'выполнена'));
-  process.exit(bad?1:0);
+  console.log('\nСтрока «Звучит»: контраст текста с фоном под ним (вычисленные стили)');
+  console.log('| Тема | Элемент | Текст | Фон | Контраст |');
+  console.log('|---|---|---|---|---|');
+  nowRows.forEach(([m,x])=>console.log('| '+(m==='light'?'светлая':'«параллельный мир»')+' | '+x.name+' | '+x.text+' | '+x.bg+' | **'+x.ratio.toFixed(2)+':1** |'));
+  console.log('\nЦель ≥ 4,5:1: '+(bad||nowBad?'НЕ выполнена':'выполнена'));
+  process.exit(bad||nowBad?1:0);
 })().catch(e=>{console.error('ОШИБКА:',e.message);process.exit(2)});
