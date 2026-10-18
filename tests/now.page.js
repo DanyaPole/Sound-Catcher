@@ -67,11 +67,17 @@
       btn.click();await sleep(100);
       check(tag+'повторное нажатие: закрыт, фокус на счётчике',!vis(list)&&D.activeElement===btn);
 
-      /* касание вне дока: закрывает и не доходит до плиток */
+      /* касание вне дока, ставшее прокруткой (палец сдвинулся / pointercancel): список остаётся открытым */
       btn.click();await sleep(100);
+      var tl=D.querySelector('#grid .t[data-id=low]');
+      function pev(el,type,o){el.dispatchEvent(new W.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',isPrimary:true,pointerId:7,clientX:o.x||0,clientY:o.y||0}))}
+      pev(tl,'pointerdown',{x:40,y:500});pev(tl,'pointermove',{x:40,y:540});pev(tl,'pointerup',{x:40,y:540});await sleep(150);
+      check(tag+'касание вне дока со сдвигом (прокрутка): список остался открытым',vis(list));
+      pev(tl,'pointerdown',{x:40,y:500});pev(tl,'pointercancel',{x:40,y:540});await sleep(150);
+      check(tag+'касание вне дока с pointercancel (браузер начал прокрутку): список остался открытым',vis(list));
+      /* касание вне дока: закрывает и не доходит до плиток */
       var tile=D.querySelector('#grid .t[data-id=low]'),l0=tile.getAttribute('data-l');
-      tile.dispatchEvent(new W.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',isPrimary:true}));
-      tile.dispatchEvent(new W.PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerType:'touch',isPrimary:true}));
+      pev(tile,'pointerdown',{x:40,y:500});pev(tile,'pointerup',{x:40,y:500});
       tile.click();await sleep(150);P.stop();
       check(tag+'касание вне дока закрыло список и не нажало плитку',!vis(list)&&tile.getAttribute('data-l')===l0,'data-l '+l0+'→'+tile.getAttribute('data-l'));
       tile.click();await sleep(150);P.stop();

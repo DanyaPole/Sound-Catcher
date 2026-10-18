@@ -3669,13 +3669,22 @@ function nowOpen(on,back){
 }
 $('nowBtn').onclick=function(){vib(8);nowOpen(!NOWOPEN,true)};
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&NOWOPEN)nowOpen(false,true)});
-/* касание вне дока только закрывает список и не доходит до плиток под пальцем */
+/* касание вне дока: короткое — только закрывает список и не доходит до плиток; если касание стало прокруткой (палец сдвинулся / браузер отменил) — список остаётся открытым */
 document.addEventListener('pointerdown',function(e){
   if(!NOWOPEN||$('dock').contains(e.target))return;
-  nowOpen(false,false);e.stopPropagation();
-  var t=0;function eat(ev){ev.stopPropagation();ev.preventDefault();stop()}
-  function stop(){clearTimeout(t);document.removeEventListener('click',eat,true)}
-  document.addEventListener('click',eat,true);t=setTimeout(stop,700);
+  e.stopPropagation();
+  var x0=e.clientX,y0=e.clientY,id=e.pointerId,t=0;
+  function end(){document.removeEventListener('pointermove',mv,true);document.removeEventListener('pointerup',up,true);document.removeEventListener('pointercancel',cn,true)}
+  function mv(ev){if(ev.pointerId===id&&Math.abs(ev.clientX-x0)+Math.abs(ev.clientY-y0)>10)end()}
+  function cn(ev){if(ev.pointerId===id)end()}
+  function up(ev){
+    if(ev.pointerId!==id)return;end();
+    nowOpen(false,false);
+    function eat(c){c.stopPropagation();c.preventDefault();stop()}
+    function stop(){clearTimeout(t);document.removeEventListener('click',eat,true)}
+    document.addEventListener('click',eat,true);t=setTimeout(stop,700);
+  }
+  document.addEventListener('pointermove',mv,true);document.addEventListener('pointerup',up,true);document.addEventListener('pointercancel',cn,true);
 },true);
 function resetAll(){
   var L=nowItems();if(!L.length)return;
