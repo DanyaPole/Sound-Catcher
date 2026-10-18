@@ -8,7 +8,7 @@
   var $=function(id){return D.getElementById(id)};
   function hash(ab){var h=2166136261>>>0,c,k;for(c=0;c<ab.numberOfChannels;c++){var d=ab.getChannelData(c),u=new Uint32Array(d.buffer,d.byteOffset,d.length);for(k=0;k<u.length;k++)h=Math.imul(h^u[k],16777619)>>>0}return h.toString(16)+':'+ab.length}
   function chips(){return [].map.call(D.querySelectorAll('#now .chip:not(.calm) span'),function(s){return s.textContent})}
-  function pick(id){$('demoBtn').click();var b=D.querySelector('#dpGrid [data-demo='+id+']');if(b)b.click()}
+  function pick(id){var gb=D.querySelector('#hist .hs.gift');if(gb)gb.click();else $('demoBtn').click();var b=D.querySelector('#dpGrid [data-demo='+id+']');if(b)b.click()}
   function calm(){return !!D.querySelector('#now .chip.calm')}
   try{
     try{localStorage.setItem('zv-tour','{"seen":1}');localStorage.removeItem('zv-curves');localStorage.removeItem('zv-echo')}catch(e){}
@@ -16,6 +16,8 @@
     fr.style.cssText='position:fixed;left:0;top:0;width:375px;height:812px;border:0';fr.src='/index.html#sa-test';
     D.body.appendChild(fr);await new Promise(function(r){fr.onload=r});await sleep(300);
     W=fr.contentWindow;D=fr.contentDocument;
+    /* ошибки JavaScript в приложении за весь прогон */
+    var errs=[];W.addEventListener('error',function(e){errs.push(String(e.message||e))});W.addEventListener('unhandledrejection',function(e){errs.push('promise: '+String(e.reason&&e.reason.message||e.reason))});
     var T=W.__SA.test,P=T.player,sr=44100,i;
     var sp=$('splash');if(sp)sp.remove();$('gate').classList.add('hide');$('tourPick').hidden=true;
     var len=Math.round(sr*0.8),A=new Float32Array(len);
@@ -78,23 +80,31 @@
     check('R9 ⇄ ещё раз — с эффектами; сравнение не пишет в историю',!C.ab()&&C.his().past===hb,'');
     $('ab').click();await sleep(100);D.querySelector('#grid .t[data-id=low]').click();await sleep(400);P.stop();
     check('R10 нажал эффект во время сравнения — сравнение само выключилось',!C.ab()&&!$('nowRow').classList.contains('ab'),'');
+    /* быстрые разные действия — отдельные шаги: новое касание закрепляет прошлое */
+    await sleep(700);var hp0=C.his().past,t1=D.querySelector('#grid .t[data-id=robot]'),t2=D.querySelector('#grid .t[data-id=trem]');
+    t1.dispatchEvent(new W.PointerEvent('pointerdown',{bubbles:true}));t1.click();await sleep(60);
+    t2.dispatchEvent(new W.PointerEvent('pointerdown',{bubbles:true}));t2.click();await sleep(800);P.stop();
+    check('R12 два быстрых нажатия подряд — два шага (↶ отменяет только последнее)',C.his().past===hp0+2,(C.his().past-hp0)+' шага');
     T.load([A],sr);await sleep(400);
     check('R11 новый звук — история чистая',C.his().past===0&&$('undo').disabled,JSON.stringify(C.his()));
     T.fx([]);T.ui();await sleep(400);
 
     /* ---- шаг 4: демо и подписи 🎲 ---- */
-    var db=$('demoBtn'),dr=db.getBoundingClientRect(),rr=$('rec').getBoundingClientRect();
+    /* большая кнопка демо — пока звука нет; потом — плитка «🎁 готовые» в «Мои звуки» */
+    D.body.classList.remove('ready');var db=$('demoBtn'),dr=db.getBoundingClientRect(),rr=$('rec').getBoundingClientRect();D.body.classList.add('ready');
+    var gift=D.querySelector('#hist .hs.gift');
+    check('D1c звук есть — большой кнопки нет, а в «Мои звуки» плитка «🎁 готовые», без пустых «пусто»',W.getComputedStyle(db).display==='none'&&!!gift&&!D.querySelector('#hist .hs.empty'),'');
     check('D1 на главном экране под кнопкой записи — «🐦 Попробовать без микрофона»',dr.height>=44&&dr.top>rr.bottom&&dr.top-rr.bottom<200&&/без микрофона/.test(db.textContent),Math.round(dr.top-rr.bottom)+' px ниже записи');
-    var g0=T.slices.src();db.click();await sleep(100);
+    var g0=T.slices.src();gift.click();await sleep(100);
     var dp=$('demoPick'),nb=D.querySelectorAll('#dpGrid .dpb').length;
     check('D1b «Попробовать» открывает окно: 9 готовых звуков',!dp.hidden&&nb===9,nb+' звуков');
     D.querySelector('#dpGrid [data-demo=bird]').click();await sleep(300);P.stop();
     check('D2 демо загружает птичку (2,4 с) и показывает результат',T.slices.src()!==g0&&Math.abs(T.slices.src().duration-2.4)<0.01&&$('fx').classList.contains('show'),T.slices.src().duration.toFixed(2)+' с');
     var sb=$('surprise');
-    check('D3 у 🎲 в плеере видна подпись «сюрприз», а в описании — что запись не меняется',/сюрприз/.test(sb.textContent)&&/запись не меняется/.test(sb.getAttribute('aria-label'))&&sb.getBoundingClientRect().height>=44,sb.textContent);
+    check('D3 🎲 Сюрприз подписан, а в описании — что запись не меняется',/Сюрприз: всё случайно/.test(sb.textContent)&&/запись не меняется/.test(sb.getAttribute('aria-label'))&&sb.getBoundingClientRect().height>=44,sb.textContent);
     sb.click();await sleep(200);P.stop();
     check('D4 после 🎲 сказано: «запись та же, ↶ вернёт»',/запись та же, ↶ вернёт/.test($('msg').textContent),$('msg').textContent);
-    check('D5 кнопки 🎲 подписаны, что именно меняют',/Случайные эффекты/.test($('fxDice').textContent)&&/сухо–мокро и температура/.test($('toolDice').textContent),'');
+    check('D5 кнопки 🎲 подписаны, что именно меняют',/Случайные эффекты/.test($('fxDice').getAttribute('aria-label'))&&/сухо–мокро и температура/.test($('toolDice').getAttribute('aria-label'))&&/эффекты/.test($('fxDice').textContent),'');
     check('D6 подсказка: что хранится в «Мои звуки» и как сохранить с эффектами',/без эффектов/.test($('saveTip').textContent)&&/📤/.test($('saveTip').textContent),'');
     $('gate').classList.remove('hide');await sleep(50);
     var gd=$('gateDemo'),gr=gd.getBoundingClientRect();
@@ -173,6 +183,7 @@
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
+    check('Z1 за весь прогон ни одной ошибки JavaScript',!errs.length,errs.slice(0,3).join(' | '));
     await report({ok:true,results:results,png:W.__png});
   }catch(e){await report({error:String(e&&e.stack||e),results:results})}
 })();

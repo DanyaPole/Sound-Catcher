@@ -31,8 +31,8 @@
 
     /* 1. прилипание */
     W.scrollTo(0,D.documentElement.scrollHeight);await sleep(150);
-    var a=onTop('play'),b=onTop('rep'),c=onTop('surprise');
-    check('P1 обычный экран: внизу страницы ▶, повтор и 🎲 видны и не закрыты',a.ok&&b.ok&&c.ok,a.d+' / '+b.d+' / '+c.d);
+    var a=onTop('play'),b=onTop('rep'),c=onTop('ab');
+    check('P1 обычный экран: внизу страницы ▶, повтор и ⇄ видны и не закрыты',a.ok&&b.ok&&c.ok,a.d+' / '+b.d+' / '+c.d);
     W.scrollTo(0,0);await sleep(100);
     var bar=$('tbar').getBoundingClientRect();
     check('P2 плеер не выше 90 px — не съедает экран',bar.height<=90,Math.round(bar.height)+' px');
@@ -128,8 +128,10 @@
     /* 11. в мире плеер тоже прилипает */
     T.world.set(true);await sleep(400);$('tourPick').hidden=true;
     W.scrollTo(0,D.documentElement.scrollHeight);await sleep(150);
-    var wa=onTop('play'),wb=onTop('surprise');
-    check('P23 мир: внизу страницы ▶ и 🎲 видны и не закрыты',wa.ok&&wb.ok,wa.d+' / '+wb.d);
+    var wa=onTop('play'),wb=onTop('ab');
+    check('P23 мир: внизу страницы ▶ и ⇄ видны и не закрыты',wa.ok&&wb.ok,wa.d+' / '+wb.d);
+    /* 🎲 выше мог включить нарезку «после эффектов» и эффекты — тогда проход длиннее замера */
+    T.slices.set({n:6,mode:'pre'});T.fx([]);P.mix(1);
     P.rep('loop',true);T.artist({on:true,seed:5,preset:'classic'});P.play();await sleep(1500);
     var lg=T.ec.log(),again=0;for(i=1;i<lg.length;i++)if(lg[i].tap<lg[i-1].tap)again++;
     check('P24 мир, по кругу: всплески эха снова с начала в каждом проходе',again>=1,'перезапусков '+again+' из '+lg.length+' всплесков');

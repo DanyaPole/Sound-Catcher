@@ -48,9 +48,10 @@
     check('E5 нарисованное голубым пером слышно: эхо ≈ 0,25 с в левом ухе',eL>0.2*dry&&eR<0.02*eL,'эхо/оригинал='+(eL/dry).toFixed(2)+' R/L='+(eR/eL).toExponential(1));
 
     /* отмена / возврат */
-    btn('#ecTools [data-tool=undo]');
+    /* отмена — общими ↶ ↷ (своих у холста больше нет): мазок попадает в историю, когда полсекунды без изменений */
+    await new Promise(function(r){setTimeout(r,900)});btn('#undo');
     check('E6 «назад»: мазок убран, эха нет',T.ec.snap().total===0,'');
-    btn('#ecTools [data-tool=redo]');
+    btn('#redo');
     check('E6b «вперёд»: мазок вернулся',T.ec.snap().total>0,'');
 
     /* ластик */

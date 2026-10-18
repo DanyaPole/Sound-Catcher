@@ -87,8 +87,10 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .rb:active{transform:translateY(5px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
 /* плеер прилипает к верху экрана: ▶/⏹, повтор и 🎲 видны при любой прокрутке */
 /* плеер и строка «Звучит» прилипают к верху вместе */
-#dock{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;display:flex;flex-direction:column;align-items:center;gap:6px;width:min(100%,360px)}
-.nowr{gap:6px;padding:4px;border-radius:26px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 0 rgba(0,0,0,.08);box-sizing:border-box}
+/* одна цельная панель на обе строки — сквозь неё не просвечивает страница */
+#dock{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;width:min(100%,360px);box-sizing:border-box;padding:2px;border-radius:32px;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
+body.world #dock{background:rgba(24,16,58,.8);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
+.nowr{gap:6px;padding:2px 4px 4px;box-sizing:border-box;width:100%}
 #now{flex:1;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;align-items:center;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:14px}
 #now::-webkit-scrollbar{display:none}
 #now .lbl{flex:none;font-size:13px;font-weight:700;opacity:.7;padding-left:6px}
@@ -97,21 +99,20 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .chip.calm{border-color:transparent;background:transparent;cursor:default;opacity:.8}
 .nowr.ab #now{opacity:.45}
 .nowr .ub{min-width:44px;padding:0 2px}
-#ab[aria-pressed=true]{background:#ffd23f;color:var(--ink);box-shadow:0 3px 0 #d9a400}
+#ab[aria-pressed=true]{background:#ffd23f;color:var(--ink);box-shadow:0 5px 0 #d9a400}
 #resetAll,.nowr .ub{flex:none;min-width:44px;min-height:44px;border:0;border-radius:22px;background:var(--vio);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--viod)}
 #resetAll small,.nowr .ub small{font-size:10px;font-weight:700}
 #resetAll:disabled,.nowr .ub:disabled{opacity:.35;cursor:default}
-body.world .nowr{background:rgba(24,16,58,.72);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
 body.world .chip{background:rgba(255,255,255,.1);color:#fff;border-color:#a98bff}
 body.world .chip.calm{background:transparent;border-color:transparent}
-.tbar{gap:8px;padding:6px;border-radius:34px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
+.tbar{gap:8px;padding:4px;width:100%;box-sizing:border-box}
 #play{width:64px;height:64px;font-size:30px;background:var(--ok);box-shadow:0 6px 0 var(--okd);padding-left:4px}
 #play.st{padding-left:0}
 .rb.sm{width:48px;height:48px;font-size:21px;border-width:4px}
 #rep{background:var(--vio);box-shadow:0 5px 0 var(--viod)}
 #rep[data-m=once]{background:#a99bd6;box-shadow:0 5px 0 #7d6fae}
-#surprise{background:#ff9f1c;box-shadow:0 5px 0 #d17314;flex-direction:column;line-height:1}
-#surprise small{font-size:8px;font-weight:800;margin-top:1px}
+#ab{background:#22b8cf;box-shadow:0 5px 0 #1a8fa1;flex-direction:column;line-height:1}
+#ab small{font-size:8px;font-weight:800;margin-top:1px}
 #demoPick{position:fixed;inset:0;z-index:11;display:flex;align-items:center;justify-content:center;background:rgba(20,10,50,.55);padding:16px}
 #demoPick[hidden]{display:none}
 .dpk{width:min(100%,340px);background:#fff;border-radius:26px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);color:var(--ink)}
@@ -125,6 +126,7 @@ body.world .chip.calm{background:transparent;border-color:transparent}
 .dpt{font-size:13px;text-align:center;opacity:.75;padding-top:10px}
 .pill.demo{flex:none;background:#fff;color:var(--ink);border-color:#ffd23f;box-shadow:0 5px 0 rgba(0,0,0,.12);font-size:15px}
 body.recording .pill.demo{visibility:hidden}
+body.world .pill.demo{background:rgba(255,255,255,.1);color:#fff;border-color:#ffd23f}
 #saveTip{max-width:340px}
 #wave{flex:1;min-width:0;height:64px;background:#fff;border-radius:22px;box-shadow:0 4px 0 rgba(0,0,0,.08);touch-action:pan-y;cursor:pointer}
 .shr{gap:10px}
@@ -133,6 +135,12 @@ body.recording .pill.demo{visibility:hidden}
 #share{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sund)}
 #shareArt{display:none;background:var(--vio);box-shadow:0 5px 0 var(--viod)}
 .pill.dice{flex:none;width:min(100%,360px);background:#ff8a3d;box-shadow:0 5px 0 #c85f1a}
+/* заголовок раздела со своей маленькой 🎲 справа */
+.sech{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:0}
+.hdice{flex:none;min-width:58px;min-height:44px;border:3px solid #fff;border-radius:16px;background:#ff8a3d;color:#fff;font-size:17px;line-height:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 0 #c85f1a;padding:2px 6px}
+.hdice small{font-size:9px;font-weight:800;margin-top:1px}
+.hdice:active{transform:translateY(3px);box-shadow:0 1px 0 #c85f1a}
+body.world .hdice{border-color:rgba(255,255,255,.4)}
 /* нарезка: кусочки звука, их можно таскать */
 .slb{width:min(100%,360px);box-sizing:border-box}
 .slm{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f1ecff;border-radius:16px;padding:4px}
@@ -149,7 +157,10 @@ body.world #slStrip{background:rgba(255,255,255,.08)}
 .hs canvas{width:100%;height:26px;display:block}
 .hs .hl{font-size:12px;white-space:nowrap}
 .hs.on{border-color:var(--vio);box-shadow:0 5px 0 var(--viod)}
-.hs:active:not(.empty){transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.1)}
+.hs:active:not(.empty){transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.1)}.hs.gift{background:#fff3c4;border-color:#fff}
+.hs .gi{font-size:24px;line-height:26px}
+body.world .hs.gift{background:rgba(255,210,63,.18)}
+body.ready #demoBtn{display:none}
 .hs.empty{background:rgba(255,255,255,.4);border-style:dashed;box-shadow:none;opacity:.75;cursor:default}
 
 /* ---- переключатели и ползунки ---- */
@@ -195,7 +206,7 @@ body.world #slStrip{background:rgba(255,255,255,.08)}
 .t .lv{position:absolute;left:0;right:0;bottom:5px;display:flex;justify-content:center;gap:3px;pointer-events:none}
 .t .lv i{width:7px;height:7px;border-radius:50%;background:rgba(26,16,51,.18);border:1px solid rgba(255,255,255,.7)}
 .t[data-l="1"] .lv i:nth-child(1),.t[data-l="2"] .lv i:nth-child(-n+2),.t[data-l="3"] .lv i{background:var(--ink)}
-.t[data-id=orig] .lv{display:none}
+.t[data-id=orig] .lv,.t:not(.sel) .lv{display:none}
 .t.no{animation:no .4s}
 @keyframes no{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .t.sel .em{animation:var(--an) var(--du,1.8s) ease-in-out infinite}
@@ -343,7 +354,6 @@ body.world #rec.on{box-shadow:0 0 46px 12px rgba(124,77,255,.6),0 8px 0 #1f1440}
 body.world #rec span{display:none}
 body.world #rec:not(.on):after{content:"🖌️"}
 body.world .rb,body.world .pill{border-color:rgba(255,255,255,.75)}
-body.world .tbar{background:rgba(24,16,58,.72);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
 body.world #gate{--ink:#3b2a6b;color:#3b2a6b}
 body.world .ends{opacity:.7}
 
@@ -379,14 +389,14 @@ body.world #wNote{display:block}
 #ecEnt i{position:absolute;top:-4px;width:6px;height:18px;border-radius:3px;background:#fff;box-shadow:0 0 6px #fff;left:0;transition:left .25s}
 #ecEntTxt{min-width:8.6em;text-align:right;color:#c9b6ff}
 /* инструменты и краски — две строки, справа столбец действий (назад, вперёд, кубик, очистить) */
-.ec-ctl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 44px 44px;gap:6px;width:100%}
+.ec-ctl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 50px;gap:6px;width:100%}
 #ecTools,#ecPal{display:contents}
 .ecBtn{min-width:0;min-height:50px;border:3px solid rgba(255,255,255,.25);border-radius:16px;background:var(--glass);color:var(--ink);font-size:19px;padding:3px 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
 .ecBtn small{font-size:10px;font-weight:700;opacity:.85;white-space:nowrap}
 .ecBtn.on{background:var(--vio);border-color:#fff}
 .ecBtn:active{transform:translateY(2px)}
-.ecBtn[data-tool=undo]{grid-area:1/5}.ecBtn[data-tool=redo]{grid-area:1/6}
-.ecBtn[data-tool=dice]{grid-area:2/5}.ecBtn[data-tool=clear]{grid-area:2/6}
+/* отмена мазков — общими ↶ ↷ наверху; здесь только 🎲 и очистить */
+.ecBtn[data-tool=dice]{grid-area:1/5}.ecBtn[data-tool=clear]{grid-area:2/5}
 .ecBtn.act{font-size:18px;border-radius:14px}
 #ecPal .ecBtn{grid-row:2;font-size:16px;color:#1a1033;border-color:#fff}
 #ecPal .ecBtn.on{box-shadow:0 0 0 3px var(--vio)}
@@ -567,12 +577,11 @@ body.world #wNote{display:block}
     <button id="play" class="rb" aria-label="Играть">▶</button>
     <canvas id="wave" aria-label="Волна: коснись — играть с этого места, проведи пальцем вбок — выбрать кусочек"></canvas>
     <button id="rep" class="rb sm" data-m="once" aria-label="Повтор: один раз">➡️</button>
-    <button id="surprise" class="rb sm" aria-label="Сюрприз: случайная обработка — эффекты и настройки; сама запись не меняется" title="Сюрприз: случайная обработка (запись не меняется, ↶ вернёт)">🎲<small>сюрприз</small></button>
+    <button id="ab" class="rb sm" aria-label="Сравнить: как было или с эффектами" aria-pressed="false">⇄<small>сравни</small></button>
   </div>
   <div class="row nowr" id="nowRow">
     <button class="ub" id="undo" aria-label="Отменить" disabled>↶<small>назад</small></button>
     <button class="ub" id="redo" aria-label="Вернуть" disabled>↷<small>вперёд</small></button>
-    <button class="ub" id="ab" aria-label="Сравнить: как было или с эффектами" aria-pressed="false">⇄<small>сравни</small></button>
     <div id="now" aria-live="polite" aria-label="Что сейчас звучит"></div>
     <button id="resetAll" aria-label="Сбросить всё: звук как был">↺<small>всё</small></button>
   </div>
@@ -581,12 +590,12 @@ body.world #wNote{display:block}
     <button id="share" class="pill" aria-label="Поделиться">📤 Отправить звук</button>
     <button id="shareArt" class="pill" aria-label="Поделиться картиной звука">🖼️ Картина</button>
   </div>
-  <div class="tip" id="saveTip">💾 Записи с микрофона сами хранятся в «Мои звуки» (последние 3) — без эффектов. С эффектами — сохрани кнопкой 📤</div>
+  <button id="surprise" class="pill dice" aria-label="Сюрприз: случайная обработка — эффекты и настройки; сама запись не меняется" title="Запись не меняется, ↶ вернёт">🎲 Сюрприз: всё случайно</button>
   <div class="sec">🕘 Мои звуки</div>
+  <div class="tip" id="saveTip">Здесь последние 3 записи с микрофона, без эффектов · с эффектами — 📤</div>
   <div class="hist" id="hist"></div>
-  <div class="sec">🪄 Выбери волшебство</div>
+  <div class="sec sech"><span>🔮 Выбери волшебство</span><button id="fxDice" class="hdice" aria-label="Случайные эффекты">🎲<small>эффекты</small></button></div>
   <button class="sw" id="multi" role="switch" aria-checked="false"><span class="kn"></span><span class="sl">🎛️ Микс эффектов</span><small id="multiTxt">смешай до 3 эффектов сразу</small></button>
-  <button id="fxDice" class="pill dice" aria-label="Случайные эффекты">🎲 Случайные эффекты</button>
   <div class="grid" id="grid"></div>
   <div class="tip">👆 Жми ещё — сильнее: 25 → 50 → 100% → выкл</div>
   <div class="sec">✂️ Нарезка</div>
@@ -617,7 +626,7 @@ body.world #wNote{display:block}
     </details>
   </div>
   <div id="crvBox">
-    <div class="sec">〰️ Рисую звук во времени</div>
+    <div class="sec sech"><span>〰️ Рисую звук во времени</span><button id="crvAll" class="hdice" aria-label="Всё случайно во времени">🎲<small>всё</small></button></div>
     <div class="knob crvk">
       <div class="crl" id="crvLanes" role="tablist" aria-label="Что рисовать"></div>
       <div class="drawhere" id="crvHere">✏️ Рисуй здесь — линию слева направо</div>
@@ -625,11 +634,9 @@ body.world #wNote{display:block}
       <div class="ntools crs" id="crvShapes"></div>
       <div class="cap" id="crvCap">👆 Проведи линию слева направо — так звук будет меняться</div>
     </div>
-    <button id="crvAll" class="pill dice" aria-label="Всё случайно во времени">🎲 Всё случайно во времени</button>
   </div>
-  <div class="sec">🎚️ Настрой звук</div>
+  <div class="sec sech"><span>🎚️ Настрой звук</span><button id="toolDice" class="hdice" aria-label="Случайно: сухо–мокро и температура">🎲<small>сухо·тепло</small></button></div>
   <div class="tools">
-    <button id="toolDice" class="pill dice" aria-label="Случайно: сухо–мокро и температура">🎲 Случайно: сухо–мокро и температура</button>
     <div class="knob" id="mixBox"><div class="kt"><span>💧 Сухо — мокро</span><b id="mixTxt">мокро: 100%</b></div><div class="kr"><span>🏜️</span><input class="rng" id="mix" type="range" min="0" max="100" value="100" aria-label="Сухо — мокро: сколько эффекта слышно"><span>🌊</span></div></div>
     <div class="knob"><div class="kt"><span>🔊 Громкость</span><b id="volTxt">100%</b></div><div class="kr"><span>🔈</span><input class="rng" id="vol" type="range" min="0" max="200" value="100" aria-label="Громкость"><span>🔊</span></div></div>
     <div class="knob" id="tempBox"><div class="kt"><span>🌡️ Температура</span><b id="tempTxt">обычный 🙂</b></div><div class="kr"><span>❄️</span><input class="rng" id="temp" type="range" min="-100" max="100" value="0" aria-label="Температура звука"><span>🔥</span></div></div>
@@ -2219,7 +2226,7 @@ function renderHist(){
   histEl.innerHTML='';
   for(var i=0;i<HIST_MAX;i++)(function(i){
     var it=hist[i],b=document.createElement('button');
-    if(!it){b.className='hs empty';b.disabled=true;b.innerHTML='<span class="hl">пусто</span>';histEl.appendChild(b);return}
+    if(!it)return;
     b.className='hs'+(i===curHist?' on':'');
     b.setAttribute('aria-label','Звук '+(i+1)+', записан в '+fmtT(it.t));
     b.innerHTML='<canvas></canvas><span class="hl">'+fmtT(it.t)+' · '+it.dur.toFixed(1).replace('.',',')+' с</span>';
@@ -2227,6 +2234,9 @@ function renderHist(){
     histEl.appendChild(b);
     if(W.on&&it.th)drawMiniArt(b.querySelector('canvas'),it.th);else drawMini(b.querySelector('canvas'),it.pk);
   })(i);
+  /* последней — плитка готовых звуков (кошка, пианино, варган…) */
+  var g=document.createElement('button');g.className='hs gift';g.setAttribute('aria-label','Готовые звуки');
+  g.innerHTML='<span class="gi">🎁</span><span class="hl">готовые</span>';g.onclick=function(){vib(8);if(state==='idle')demoOpen()};histEl.appendChild(g);
 }
 function pickHist(i,b){
   if(state!=='idle')return;
@@ -2607,7 +2617,7 @@ function wApply(on){
     }
     wSize();W.half=false;W.dtN=0;W.src='';W.brKey='';
     W.last=performance.now();cancelAnimationFrame(W.raf);W.raf=requestAnimationFrame(wFrame);
-    say('Добро пожаловать в параллельный мир! 🌌 Фон рисует твой звук сам. Рисовать — в рамках «✏️ Рисуй здесь»');
+    say('Добро пожаловать в параллельный мир! 🌌');
   }else{
     cancelAnimationFrame(W.raf);wRecOff();
     say(buffer?'Ты вернулся в обычный мир 🌤️':'Нажми на красную кнопку! 👆');
@@ -2739,7 +2749,7 @@ function drawMiniArt(cv,th){
 var EC={tool:'brush',paint:'white',undo:[],redo:[],sp:[],next:0,down:false,lx:0,ly:0,lastPrev:0,
   pcv:null,pg:null,tcv:null,tg:null,w:0,h:0,dpr:1,dirty:true,previews:0,log:[],bm:null,bmg:null,seedN:1,saveT:0,replayT:0,ready:false,hx:-1,hy:-1,hint:''};
 var ECKEY='zv-echo',ECUNDO=40;
-var ECTOOLS=[['brush','🖌️','кисть'],['pen','✏️','перо'],['spray','💨','брызги'],['erase','🧽','ластик'],['undo','↩️','назад'],['redo','↪️','вперёд'],['clear','🗑️','очистить'],['dice','🎲','ещё раз']];
+var ECTOOLS=[['brush','🖌️','кисть'],['pen','✏️','перо'],['spray','💨','брызги'],['erase','🧽','ластик'],['clear','🗑️','очистить'],['dice','🎲','ещё раз']];
 /* краска: id, буква, цвет, для экранного диктора, подпись на кнопке */
 var ECPAINTS=[['blue','Л','#3aa8ff','левое ухо','левое'],['white','Ц','#fff3d6','центр','центр'],['amber','П','#ffb02e','правое ухо','правое'],['mixed','🌈','linear-gradient(90deg,#3aa8ff,#fff3d6,#ffb02e)','пёстрая','пёстрая']];
 var ECACTS=['undo','redo','clear','dice'];
@@ -3051,10 +3061,10 @@ var LANES=[
   {id:'pitch',e:'🎵',n:'высота',col:'#ff6fae',neu:0.5,top:'выше ↑ (+12)',bot:'ниже ↓ (−12)'},
   {id:'pan',e:'👂',n:'ухо',col:'#3aa8ff',neu:0.5,top:'правое ухо ↑',bot:'левое ухо ↓'},
   {id:'bright',e:'✨',n:'яркость',col:'#fff3d6',neu:0.5,top:'звонче ↑',bot:'глуше ↓'},
-  {id:'wet',e:'🪄',n:'волшебство',col:'#b69cff',neu:1,top:'всё волшебство ↑',bot:'как было ↓'}
+  {id:'wet',e:'🔮',n:'волшебство',col:'#b69cff',neu:1,top:'всё волшебство ↑',bot:'как было ↓'}
 ];
 var LANE={};LANES.forEach(function(l){LANE[l.id]=l});
-var CRSHAPES=[['rise','📈','растёт'],['fall','📉','затихает'],['wave','🌊','волны'],['hill','⛰️','горка'],['steps','🪜','ступеньки'],['pulse','💓','пульс']];
+var CRSHAPES=[['rise','📈','растёт'],['fall','📉','затихает'],['wave','🌊','волны'],['hill','⛰️','горка'],['steps','📶','ступеньки'],['pulse','💓','пульс']];
 var CV={lane:'pitch',d:{},ver:0,strokes:0,down:false,li:-1,lv:0,prevT:0,ready:false,hx:-1,hv:0,saveT:0};
 LANES.forEach(function(l){CV.d[l.id]=new Float32Array(CRN).fill(l.neu)});
 function crvLaneOn(id){
@@ -3492,8 +3502,10 @@ $('gateDemo').onclick=function(){vib(8);demoOpen()};
    Строка не знает, кто и как поменял звук: раз в 250 мс сравнивается снимок настроек */
 var NOW={sig:'',busy:false};
 function sndSig(){
-  return [gen,fxKey(),multi?1:0,MIX.toFixed(2),VOL.toFixed(2),TEMP.toFixed(2),cleanOn?1:0,noteKey(),slKey('pre')+slKey('post'),AR.on?artistKey():'',crvKey()].join('|');
+  return [gen,fxKey(),multi?1:0,MIX.toFixed(2),VOL.toFixed(2),TEMP.toFixed(2),cleanOn?1:0,noteKey(),slKey('pre')+slKey('post'),AR.on?artistKey():'',crvKey(),hisArt()].join('|');
 }
+/* холст эха в мире меняют и при выключенном эхе (очистить, мазок) — для истории это тоже шаг */
+function hisArt(){if(!W.on||!AR.cv)return '';var cv=AR.cv;return 'a'+cv.ver+(AR.want?1:0)+AR.seed+AR.influence+AR.blur}
 function volUI(){volEl.value=Math.round(VOL*100);$('volTxt').textContent=volEl.value+'%'}
 /* что звучит: [подпись, как выключить] */
 function nowItems(){
@@ -3576,6 +3588,8 @@ function hisStep(back){
   hisUI();nowTick();
   say(back?'↶ Отменил: звук как шаг назад':'↷ Вернул');play();
 }
+/* новое касание закрепляет прошлое изменение отдельным шагом: «очистить», а следом мазок — это два шага, а не один */
+document.addEventListener('pointerdown',function(e){if(!buffer||hisBusy())return;var t=e.target;if(t&&t.closest&&t.closest('#undo,#redo'))return;if(sndSig()!==HIS.sig&&HIS.g===gen)hisCommit()},true);
 $('undo').onclick=function(){vib(8);hisStep(true)};
 $('redo').onclick=function(){vib(8);hisStep(false)};
 document.addEventListener('keydown',function(e){
@@ -3661,7 +3675,7 @@ var DEMOS=[
         for(i=0;i<len;i++){var t=i/sr;d[st+i]+=am*Math.min(1,t/0.003)*Math.exp(-t*(1.6+0.9*h))*Math.sin(2*Math.PI*fh*t)}}
       for(i=0;i<Math.round(sr*0.006);i++)d[st+i]+=0.08*dmNoise()*(1-i/(sr*0.006));
     })}},
-  {id:'accordion',e:'🪗',n:'Гармошка',sec:3,say:'🪗 Гармошка играет.',make:function(d,sr){
+  {id:'accordion',e:'🎵',n:'Гармошка',sec:3,say:'🎵 Гармошка играет.',make:function(d,sr){
     /* два язычка чуть врозь (±4 цента) — «дышащий» звук гармошки; меха плавно раздуваются */
     var mel=[[72,0,0.28],[76,0.3,0.28],[79,0.6,0.28],[79,0.9,0.28],[81,1.2,0.28],[79,1.5,0.28],[76,1.8,0.28],[72,2.1,0.6]];
     mel.forEach(function(q){
@@ -3760,7 +3774,7 @@ function trAdult(){
     {sel:'#ecWrap',text:'Холст эха: вправо — позже (0–3 с), выше — выше по тону, цвет — ухо (голубой левое, янтарный правое), гуще — чаще. Возьмите ✏️ и голубую краску, коснитесь холста — в наушниках эхо слева.',
       act:[['Показать как',function(){ecInit();ecSelTool('pen');ecSelPaint('blue')}]],
       enter:function(c){c.undo0=EC.undo.length},done:function(c){return EC.undo.length>c.undo0&&trHasBlue()}},
-    {sel:'#crv',top:true,text:'Дорожки времени: 🔊 громкость, 🎵 высота, 👂 ухо, ✨ яркость, 🪄 доля эффекта. Проведите линию слева направо — параметр меняется по ходу звука. Под холстом — формы, 🎲 и ↺.',
+    {sel:'#crv',top:true,text:'Дорожки времени: 🔊 громкость, 🎵 высота, 👂 ухо, ✨ яркость, 🔮 доля эффекта. Проведите линию слева направо — параметр меняется по ходу звука. Под холстом — формы, 🎲 и ↺.',
       act:[['Показать как',function(){crvInit();crvLane('pitch',true);var b=document.querySelector('#crvShapes [data-shape=steps]');if(b)b.click()}]],
       enter:function(c){crvInit();c.s0=CV.strokes},done:function(c){return CV.strokes>c.s0}},
     {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, «🎲 Всё случайно во времени» — дорожки, готовые картины — миниатюры, ↶ ↷ отменяют любое изменение, ⇄ сравнивает с исходным, 🖼️ сохраняет картину звука.',

@@ -143,7 +143,7 @@
     var d=fr.contentDocument,okR=false,info='';
     try{
       var inW=d.body.classList.contains('world'),nb=d.querySelectorAll('#ecTools .ecBtn').length,pw=d.getElementById('ecPaint').width;
-      okR=inW&&nb>=8&&pw>100;info='мир '+inW+', кнопок инструментов '+nb+', ширина холста '+pw;
+      okR=inW&&nb>=6&&pw>100;   /* 4 инструмента + 🎲 + очистить (отмена — общими ↶ ↷) */info='мир '+inW+', кнопок инструментов '+nb+', ширина холста '+pw;
     }catch(e){info=String(e)}
     check('S1 перезагрузка внутри мира: приложение сразу в мире, холст эха инициализирован',okR,info);
     fr.remove();try{localStorage.setItem('zv-world','0')}catch(e){}
