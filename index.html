@@ -2461,6 +2461,16 @@ function artistPlan(){
 var W={on:false,cv:null,g:null,pcv:null,pg:null,fcv:null,fg:null,w:0,h:0,dpr:1,raf:0,last:0,n:0,lvl:0,td:null,fd:null,
   bands:new Float32Array(28),px:-1,py:0,src:'',ripples:[],soundOn:true,still:false,recAn:null,recSrc:null,
   dtAvg:16,dtN:0,half:false,skip:false,wired:false,x:-1,dirty:true,prevRms:0,cost:0,keep:null,onsetT:0,brKey:'',br:null,gest:null,hudT:0};
+/* Ограничитель вспышек: новая вспышка (круг от удара, всплеск эха) появляется не чаще FL.max раз за любую секунду.
+   Окно скользящее и закрытое: событие считается, пока с него не прошло больше FL.win мс, поэтому в любом отрезке в 1 с их не больше FL.max.
+   Это правило только для картинки; сами эха в плане и звук не меняются (EC.log). Вспышки по-прежнему маленькие (круги ≤ 100 px) — их площадь в десятки раз меньше порога WCAG в 25% поля зрения. */
+var FL={max:3,win:1000,t:[],shown:0,dropped:0,log:[]};
+function flashGate(now,kind){
+  while(FL.t.length&&now-FL.t[0]>FL.win)FL.t.shift();
+  if(FL.t.length>=FL.max){FL.dropped++;return false}
+  FL.t.push(now);FL.shown++;if(FL.log.length<4000)FL.log.push([now,kind]);
+  return true;
+}
 var WBANDS=28,WKEY='zv-world';
 function wStill(){try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}}
 function wHue(i){return i/WBANDS*280-TEMP*25}
@@ -2585,6 +2595,9 @@ function wFrame(now){
     var rp=W.ripples[i],age=(now-rp.t)/900;
     if(age<0)continue;
     if(age>=1){W.ripples.splice(i,1);continue}
+    /* круг становится видимым не чаще 3 раз в секунду (вместе со всплесками эх); лишние не рисуются, звук не меняется */
+    if(!rp.g){rp.g=1;rp.ok=flashGate(now,'ring')}
+    if(!rp.ok){W.ripples.splice(i,1);continue}
     fg.strokeStyle='hsla('+rp.hue+',95%,70%,'+(1-age)*0.9*(rp.a||1)+')';fg.lineWidth=3;
     fg.beginPath();fg.arc(rp.x,rp.y,W.still?10:8+age*90,0,6.2832);fg.stroke();
   }
@@ -2852,7 +2865,7 @@ function ecFrame(now){
     if(playT<EC.lastT)EC.next=0;EC.lastT=playT;   /* повтор по кругу: новый проход — эха снова с начала */
     while(EC.next<plan.length&&plan[EC.next].t<=playT){
       var e=plan[EC.next++];
-      EC.sp.push({x:e.x,y:e.y,pan:e.pan,gain:e.gain,t:now});
+      if(flashGate(now,'echo'))EC.sp.push({x:e.x,y:e.y,pan:e.pan,gain:e.gain,t:now});
       if(EC.log.length<400)EC.log.push({tap:e.t,at:playT});
     }
     active2=true;
@@ -4009,6 +4022,7 @@ if(location.hash.indexOf('#sa-test')===0){
         ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
         live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}},
     rec:{judge:recJudge,reset:function(t){REC.lastLoud=t},gain:function(){return NORM_G},say:RECSAY},
+    flash:{log:function(){return FL.log.slice()},stats:function(){return {shown:FL.shown,dropped:FL.dropped,max:FL.max,win:FL.win}},reset:function(){FL.t=[];FL.shown=0;FL.dropped=0;FL.log=[]},setMax:function(n){FL.max=n}},
     clar:{ab:function(){return AB},his:function(){return {past:HIS.past.length,fut:HIS.fut.length}},tick:nowTick,commit:hisCommit},
     curves:{init:crvInit,lane:crvLane,all:crvAll,on:crvOn,key:crvKey,factor:crvFactor,strokes:function(){return CV.strokes},
       set:function(id,f){var d=CV.d[id],i;for(i=0;i<CRN;i++)d[i]=typeof f==='function'?f(i/(CRN-1)):(f==null?LANE[id].neu:f);crvChanged(false)},
