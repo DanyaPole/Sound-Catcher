@@ -72,8 +72,9 @@
     var q1=await T.render(),fq=[0,1,2,3].map(function(j){return freq(q1,j*0.3+0.05,j*0.3+0.25)});
     check('S8 ✂️ до эффектов: кусочки 4-3-2-1 звучат наоборот',near(fq[0],600)&&near(fq[1],500)&&near(fq[2],400)&&near(fq[3],300)&&q1.length===q0.length,fq.map(function(v){return v.toFixed(0)}).join(' · '));
     SL.set({order:[0,1,2,3],rev:[false,true,false,false]});
-    var sb2=SL.src(),d2=sb2.getChannelData(0),s0=Math.round(L4/4),mid=Math.round(L4*0.375),ok=true;
-    for(i=-50;i<50;i++)if(Math.abs(d2[mid+i]-Q[Math.round(L4/2)-1-(mid+i-s0)])>1e-6)ok=false;
+    var sb2=SL.src(),d2=sb2.getChannelData(0),QB=SL.bounds(T.slices.src()),s0=QB[1],e0=QB[2],mid=Math.round((s0+e0)/2),ok=true;
+    /* кусочки теперь по доле звука, а не по времени — границы берём у приложения; слот 1 — кусочек 1 задом наперёд */
+    for(i=-50;i<50;i++)if(Math.abs(d2[mid+i]-Q[s0+e0-1-(mid+i)])>1e-6)ok=false;
     check('S9 ✂️ кусочек задом наперёд',ok&&SL.state().on,'');
     SL.set({order:[0,1,2,3],rev:[false,false,false,false]});
     var q2=await T.render();
@@ -82,8 +83,8 @@
     /* после эффектов: эхо Слона, хвосты режутся вместе с кусочками */
     T.fx([['echo',3]]);
     SL.set({n:4,mode:'post',order:[3,2,1,0],rev:[false,false,false,false]});
-    var pb=await SL.post(),raw=SL.raw(),RR=SL.range(raw),n4=Math.round((RR[1]-RR[0])/4),okp=pb.length===raw.length,dmax=0;
-    for(i=2000;i<n4-2000;i+=7){var dd=Math.abs(pb.getChannelData(0)[RR[0]+i]-raw.getChannelData(0)[RR[0]+Math.round((RR[1]-RR[0])*3/4)+i]);if(dd>dmax)dmax=dd}
+    var pb=await SL.post(),raw=SL.raw(),RR=SL.range(raw),RBD=SL.bounds(raw),n4=RBD[1]-RBD[0],okp=pb.length===raw.length,dmax=0;
+    for(i=2000;i<n4-2000;i+=7){var dd=Math.abs(pb.getChannelData(0)[RR[0]+i]-raw.getChannelData(0)[RBD[3]+i]);if(dd>dmax)dmax=dd}
     check('S11 ✂️ после эффектов: первый кусочек — это хвост эха',okp&&dmax<1e-6&&raw.length>q0.length*2,'длина '+(pb.length/sr).toFixed(2)+' с, разница '+dmax.toExponential(1));
     var pr=await T.render();
     check('S12 после эффектов: сохраняется порезанный звук',Math.abs(pr.length-pb.length-Math.ceil(0.05*sr))<2,(pr.length/sr).toFixed(2)+' с');
@@ -135,9 +136,36 @@
     var headQ=0;for(i=0;i<Math.round(sr*0.45);i++)headQ=Math.max(headQ,Math.abs(cd[i]));
     check('S24 тишина по краям не режется: все 4 кусочка со звуком, тишина осталась на месте',q4.every(function(v){return v>0.3})&&headQ===0&&cs.length===Ls,q4.map(function(v){return v.toFixed(2)}).join(' ')+' · начало '+headQ);
     T.fx([['echo',3]]);SL.set({mode:'post',order:[3,2,1,0]});var ps4=await SL.post(),pr4=SL.raw(),PR=SL.range(pr4),pq=[];
-    for(k4=0;k4<4;k4++){var pa=PR[0]+Math.round((PR[1]-PR[0])*k4/4)+300,pe=PR[0]+Math.round((PR[1]-PR[0])*(k4+1)/4)-300,p2=0;for(i=pa;i<pe;i++)p2+=ps4.getChannelData(0)[i]*ps4.getChannelData(0)[i];pq.push(Math.sqrt(p2/(pe-pa)))}
+    var PBD=SL.bounds(pr4),po=PR[0];
+    [3,2,1,0].forEach(function(src){var len=PBD[src+1]-PBD[src],pa=po+300,pe=po+len-300,p2=0,dd=ps4.getChannelData(0);for(i=pa;i<pe;i++)p2+=dd[i]*dd[i];pq.push(Math.sqrt(p2/(pe-pa)));po+=len});
     check('S25 после эффектов: хвост эха не превращается в тихие кусочки',pq.every(function(v){return v>0.02}),pq.map(function(v){return v.toFixed(3)}).join(' ')+' · режу '+(PR[0]/sr).toFixed(2)+'–'+(PR[1]/sr).toFixed(2)+' с из '+(pr4.length/sr).toFixed(2));
     T.fx([]);SL.set({mode:'pre',order:[0,1,2,3]});
+    /* ошибка со скриншота: при 11 кусочках несколько выпадали на паузы между нотами — каждому должна достаться равная доля звука */
+    T.world.set(false);
+    var gb=D.querySelector('#hist .hs.gift');if(gb)gb.click();else $('demoBtn').click();D.querySelector('#dpGrid [data-demo=bird]').click();await sleep(300);P.stop();T.fx([]);P.mix(1);
+    var badN=[],detail=[];
+    [2,4,6,8,11,12].forEach(function(nn){
+      SL.set({n:nn,mode:'pre'});
+      var bb=T.slices.src(),BD2=SL.bounds(bb),rm2=[],dd2=bb.getChannelData(0),q2,m2=0;
+      for(q2=0;q2<nn;q2++){var s2=0,a2=BD2[q2],e2=BD2[q2+1];for(i=a2;i<e2;i++)s2+=dd2[i]*dd2[i];var r2=Math.sqrt(s2/Math.max(1,e2-a2));rm2.push(r2);m2=Math.max(m2,r2)}
+      var eq=[],er=SL.range(bb);for(q2=0;q2<nn;q2++){var s3=0,a3=er[0]+Math.round((er[1]-er[0])*q2/nn),e3=er[0]+Math.round((er[1]-er[0])*(q2+1)/nn);for(i=a3;i<e3;i++)s3+=dd2[i]*dd2[i];eq.push(Math.sqrt(s3/Math.max(1,e3-a3)))}
+      var worst=Math.min.apply(null,rm2)/m2,worstEq=Math.min.apply(null,eq)/Math.max.apply(null,eq);if(nn===11)window.__eq11=worstEq;detail.push(nn+':'+worst.toFixed(2)+(nn===11?' (раньше, поровну по времени: '+worstEq.toFixed(2)+')':''));if(worst<0.2)badN.push(nn+' (тише всех в '+(1/worst).toFixed(1)+' раза)');
+    });
+    check('S26 птичка (звук с паузами): при 2…12 кусочках ни один не пустой — самый тихий не слабее 20% самого громкого',!badN.length,badN.length?badN.join(', '):detail.join(' '));
+    /* речь: три всплеска по 0,3 с и паузы по 0,5 с с еле слышным шумом (−44 дБ) — поровну по времени 3 из 11 кусочков были бы пустыми */
+    var Ls2=Math.round(sr*2.2),V=new Float32Array(Ls2),sd=3;
+    for(i=0;i<Ls2;i++){sd=(sd*16807)%2147483647;var tt=i/sr,inb=[[0.1,0.4],[0.9,1.2],[1.7,2.0]].some(function(r){return tt>=r[0]&&tt<r[1]}),ee=inb?Math.min(1,(tt-0.1)%0.8/0.02,1):1;V[i]=(inb?0.5*Math.sin(2*Math.PI*(300+60*Math.floor(tt*1.2))*tt):0)+0.003*(sd/1073741823.5-1)}
+    T.load([V],sr);T.fx([]);P.mix(1);
+    var badV=[],detV=[];
+    [2,3,4,6,8,11,12].forEach(function(nn){
+      SL.set({n:nn,mode:'pre'});
+      var vb=T.slices.src(),VB=SL.bounds(vb),vd=vb.getChannelData(0),rv2=[],q3,e5,s5,mxv=0,mnE=1e9,mxE=0,vr=SL.range(vb);
+      for(q3=0;q3<nn;q3++){s5=0;for(i=VB[q3];i<VB[q3+1];i++)s5+=vd[i]*vd[i];var r5=Math.sqrt(s5/Math.max(1,VB[q3+1]-VB[q3]));rv2.push(r5);mxv=Math.max(mxv,r5)}
+      for(q3=0;q3<nn;q3++){s5=0;var a5=vr[0]+Math.round((vr[1]-vr[0])*q3/nn),b5=vr[0]+Math.round((vr[1]-vr[0])*(q3+1)/nn);for(i=a5;i<b5;i++)s5+=vd[i]*vd[i];var r6=Math.sqrt(s5/Math.max(1,b5-a5));mnE=Math.min(mnE,r6);mxE=Math.max(mxE,r6)}
+      var wv=Math.min.apply(null,rv2)/mxv;detV.push(nn+':'+wv.toFixed(2)+(nn===11?' (раньше '+(mnE/mxE).toFixed(3)+')':''));if(wv<0.2)badV.push(nn);
+    });
+    check('S27 речь с паузами: при 2…12 кусочках ни один не пустой (самый тихий ≥ 20% самого громкого)',!badV.length,badV.length?'пустые при n = '+badV.join(', ')+' · '+detV.join(' '):detV.join(' '));
+    SL.set({n:6,mode:'pre',order:[0,1,2,3,4,5],rev:[false,false,false,false,false,false]});
     /* мир: полоска на месте, нарезка слышна */
     T.load([Q],sr);T.fx([]);P.mix(1);T.out(1,0);
     T.world.set(true);await sleep(300);$('tourPick').hidden=true;

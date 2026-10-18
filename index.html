@@ -3307,7 +3307,7 @@ function slAfter(){return slOn()&&SL.mode==='post'}
 /* кусочек k — отсчёты [L·k/n, L·(k+1)/n); длина звука не меняется; стыки плавные (6 мс), соседи по порядку — без стыка */
 /* где звук на самом деле слышен: от первого до последнего окна 10 мс, чья громкость не тише −26 дБ от самого громкого окна.
  Режем только эту часть — тишина в начале, в конце и тихий хвост после эффектов не становятся «пустыми» кусочками */
-var slRangeCache={b:null,r:null};
+var slRangeCache={b:null,r:null,env:null,wn:1},slBoundCache={k:'',v:null};
 function slRange(b){
   if(slRangeCache.b===b)return slRangeCache.r;
   var L=b.length,Wn=Math.max(1,Math.round(b.sampleRate*0.01)),nw=Math.ceil(L/Wn),rm=new Float32Array(nw),mx=0,c,i,w;
@@ -3317,11 +3317,34 @@ function slRange(b){
   for(w=0;w<nw;w++)if(rm[w]>thr){if(a<0)a=w;z=w}
   var r=a<0||mx<1e-6?[0,L]:[Math.max(0,(a-1)*Wn),Math.min(L,(z+2)*Wn)];
   if(r[1]-r[0]<SL.n*8)r=[0,L];
-  slRangeCache={b:b,r:r};return r;
+  slRangeCache={b:b,r:r,env:rm,wn:Wn};return r;
+}
+/* границы n кусочков: каждому достаётся равная доля слышимого звука (по огибающей громкости), а не равное время.
+   Так при любом числе кусочков ни один не выпадает на паузу между нотами или на затухающий хвост.
+   Кусочек не короче 40 мс; если звука так мало, что это невозможно, — поровну по времени */
+function slBounds(b){
+  var R=slRange(b),n=SL.n,k=n+':'+R[0]+':'+R[1];
+  if(slBoundCache.b===b&&slBoundCache.k===k)return slBoundCache.v;
+  var A=R[0],E=R[1],Wn=slRangeCache.wn,env=slRangeCache.env,minL=Math.round(b.sampleRate*0.04),i,w,bd=[A],tot=0,cum=[];
+  var w0=Math.floor(A/Wn),w1=Math.min(env.length,Math.ceil(E/Wn));
+  for(w=w0;w<w1;w++){tot+=env[w];cum.push(tot)}
+  if(tot<=0||E-A<n*minL){bd=[];for(i=0;i<=n;i++)bd.push(A+Math.round((E-A)*i/n))}
+  else{
+    for(i=1;i<n;i++){
+      var want=tot*i/n,lo=0,hi=cum.length-1;
+      while(lo<hi){var mid=(lo+hi)>>1;if(cum[mid]>=want)hi=mid;else lo=mid+1}
+      var p=Math.max(A,Math.min(E,(w0+lo)*Wn+Math.round(Wn/2)));
+      /* не короче minL: сдвигаем вперёд, оставляя место остальным */
+      p=Math.max(p,bd[i-1]+minL);p=Math.min(p,E-(n-i)*minL);
+      bd.push(p);
+    }
+    bd.push(E);
+  }
+  slBoundCache={b:b,k:k,v:bd};return bd;
 }
 function sliceBuf(b){
-  var L=b.length,n=SL.n,out=newBuf(b),F=Math.max(1,Math.round(b.sampleRate*0.006)),R=slRange(b),A=R[0],E=R[1],c,j,i;
-  function bd(i){return A+Math.round((E-A)*i/n)}
+  var L=b.length,n=SL.n,out=newBuf(b),F=Math.max(1,Math.round(b.sampleRate*0.006)),R=slRange(b),A=R[0],E=R[1],BD=slBounds(b),c,j,i;
+  function bd(i){return BD[i]}
   function joined(j){return j>0&&j<n&&!SL.rev[j]&&!SL.rev[j-1]&&SL.order[j]===SL.order[j-1]+1}
   for(c=0;c<b.numberOfChannels;c++){
     var x=b.getChannelData(c),y=out.getChannelData(c),o=A;
@@ -3346,9 +3369,9 @@ function slUI(){
 /* высоты кусочков (по 12 столбиков) — из записи, а после эффектов — из обработанного звука */
 function slPeaks(b){
   if(SL.pks===b&&SL.pkn===SL.n)return SL.pk;
-  var d=b.getChannelData(0),B=12,M=SL.n*B,pk=new Float32Array(M),mx=1e-4,R=slRange(b),i,j;
+  var d=b.getChannelData(0),B=12,M=SL.n*B,pk=new Float32Array(M),mx=1e-4,BD=slBounds(b),i,j;
   for(i=0;i<M;i++){
-    var a=R[0]+Math.round((R[1]-R[0])*i/M),e=R[0]+Math.round((R[1]-R[0])*(i+1)/M),m=0;
+    var sj=Math.floor(i/B),u=i%B,a=BD[sj]+Math.round((BD[sj+1]-BD[sj])*u/B),e=BD[sj]+Math.round((BD[sj+1]-BD[sj])*(u+1)/B),m=0;
     for(j=a;j<e;j+=4){var v=d[j]<0?-d[j]:d[j];if(v>m)m=v}
     pk[i]=m;if(m>mx)mx=m;
   }
@@ -3376,11 +3399,15 @@ function slDraw(){
     }
     g.fillStyle=W.on?'#fff':'#2a1a5e';g.fillText((SL.rev[j]?'⏪':'')+(k+1),x+bw/2,y0+13);
   }
-  if(SES&&playFrac>=0){var px=(playFrac*sb.length-R[0])/(R[1]-R[0]);if(px>=0&&px<=1){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(px*w-1.5,0,3,h)}}
+  if(SES&&playFrac>=0){var px=slPosOf(sb,playFrac*sb.length);if(px>=0&&px<=1){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(px*w-1.5,0,3,h)}}
 }
 /* полоска показывает только звучащую часть: перевод «кусочек j» ↔ «доля всего звука» */
 function slBufNow(){return SL.mode==='post'&&PB.r&&PB.rk===postRawKey()?PB.r:baseBuf()}
-function slFrac(j){var b=slBufNow(),R=slRange(b);return (R[0]+(R[1]-R[0])*j/SL.n)/b.length}
+/* границы кусочков в порезанном звуке (с учётом перестановки): слот j занимает [O[j], O[j+1]] */
+function slOut(b){var BD=slBounds(b),O=[BD[0]],j;for(j=0;j<SL.n;j++){var k=SL.order[j];O.push(O[j]+BD[k+1]-BD[k])}return O}
+function slFrac(j){var b=slBufNow();return slOut(b)[j]/b.length}
+/* где на полоске (0…1) находится отсчёт порезанного звука: слоты равной ширины, внутри слота — по времени; вне слотов — -1 */
+function slPosOf(b,smp){var O=slOut(b),n=SL.n,j;if(smp<O[0]||smp>O[n])return -1;for(j=0;j<n;j++)if(smp<=O[j+1])return (j+(smp-O[j])/Math.max(1,O[j+1]-O[j]))/n;return -1}
 function slPos(e){var r=slCv.getBoundingClientRect();return Math.max(0,Math.min(SL.n-1,Math.floor((e.clientX-r.left)/r.width*SL.n)))}
 slCv.addEventListener('pointerdown',function(e){if(!buffer)return;slFresh();SL.drag={j:slPos(e),x:e.clientX,moved:false}});
 slCv.addEventListener('pointermove',function(e){
@@ -3990,7 +4017,7 @@ if(location.hash.indexOf('#sa-test')===0){
       png:function(){return crvCv.toDataURL('image/png')}},
     slices:{set:function(o){slFresh();if(o.n){SL.n=o.n;slIdent()}if(o.mode)SL.mode=o.mode;if(o.order)SL.order=o.order.slice();if(o.rev)SL.rev=o.rev.slice();slChanged()},
       state:function(){slFresh();return {n:SL.n,order:SL.order.slice(),rev:SL.rev.slice(),mode:SL.mode,on:slOn(),key:slKey('pre')+slKey('post')}},
-      dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},range:slRange,fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
+      dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},range:slRange,bounds:function(b){return slBounds(b)},fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
       octave:function(){return octBuf(srcBuf())},src:function(){return srcBuf()}}
   }};
   if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
