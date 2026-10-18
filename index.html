@@ -112,6 +112,17 @@ body.world .chip.calm{background:transparent;border-color:transparent}
 #rep[data-m=once]{background:#a99bd6;box-shadow:0 5px 0 #7d6fae}
 #surprise{background:#ff9f1c;box-shadow:0 5px 0 #d17314;flex-direction:column;line-height:1}
 #surprise small{font-size:8px;font-weight:800;margin-top:1px}
+#demoPick{position:fixed;inset:0;z-index:11;display:flex;align-items:center;justify-content:center;background:rgba(20,10,50,.55);padding:16px}
+#demoPick[hidden]{display:none}
+.dpk{width:min(100%,340px);background:#fff;border-radius:26px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);color:var(--ink)}
+.dph{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:0 4px 8px}
+.dph button{width:44px;height:44px;border:0;border-radius:50%;background:#f1ecff;color:var(--ink);font-size:18px;cursor:pointer}
+.dpg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dpb{min-height:84px;border:3px solid #fff;border-radius:20px;background:#fff3c4;box-shadow:0 4px 0 #e6c14a;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.dpb span{font-size:34px;line-height:1}
+.dpb small{font-size:13px;font-weight:700}
+.dpb:active{transform:translateY(3px);box-shadow:0 1px 0 #e6c14a}
+.dpt{font-size:13px;text-align:center;opacity:.75;padding-top:10px}
 .pill.demo{flex:none;background:#fff;color:var(--ink);border-color:#ffd23f;box-shadow:0 5px 0 rgba(0,0,0,.12);font-size:15px}
 body.recording .pill.demo{visibility:hidden}
 #saveTip{max-width:340px}
@@ -512,6 +523,13 @@ body.world #wNote{display:block}
   <button id="gateDemo" class="pill demo" aria-label="Попробовать без микрофона: готовый звук птички">🐦 Попробовать без микрофона</button>
 </div>
 
+<div id="demoPick" hidden role="dialog" aria-label="Готовые звуки">
+  <div class="dpk">
+    <div class="dph"><b>🎁 Готовые звуки</b><button id="dpClose" aria-label="Закрыть">✕</button></div>
+    <div class="dpg" id="dpGrid"></div>
+    <div class="dpt">Выбери звук — он сразу заиграет. Свой звук — красной кнопкой 🎤</div>
+  </div>
+</div>
 <canvas id="world" aria-hidden="true"></canvas>
 <canvas id="worldpaint" aria-hidden="true"></canvas>
 <canvas id="worldfx" aria-hidden="true"></canvas>
@@ -3467,8 +3485,8 @@ function surprise(rnd){
 }
 $('surprise').onclick=function(){vib([10,30,10]);bounce($('surprise'));burst($('surprise'));surprise()};
 /* без микрофона — сразу готовый звук: птичка */
-$('demoBtn').onclick=function(){vib(8);bounce($('demoBtn'));if(state==='idle')loadDemo()};
-$('gateDemo').onclick=function(){vib(8);gate.classList.add('hide');loadDemo()};
+$('demoBtn').onclick=function(){vib(8);bounce($('demoBtn'));if(state==='idle')demoOpen()};
+$('gateDemo').onclick=function(){vib(8);demoOpen()};
 
 /* ---------- «Звучит»: всё, что сейчас меняет звук, — одной строкой; ✕ выключает, ↺ сбрасывает всё ----------
    Строка не знает, кто и как поменял звук: раз в 250 мс сравнивается снимок настроек */
@@ -3605,19 +3623,112 @@ function trSpeak(t){
   }catch(e){}
 }
 /* готовая мелодия «птичка»: если микрофона нет или хочется сразу играть */
-function loadDemo(){
-  var c=ac(),sr=c.sampleRate,notes=[[659.25,0],[783.99,0.28],[987.77,0.56],[783.99,0.9],[1318.5,1.18]],n=Math.round(sr*2.4),b=c.createBuffer(1,n,sr),d=b.getChannelData(0),i,k;
-  for(k=0;k<notes.length;k++){
-    var f=notes[k][0],st=Math.round(notes[k][1]*sr),len=Math.round(sr*0.34);
-    for(i=0;i<len&&st+i<n;i++){
-      var t=i/sr,env=Math.min(1,i/(sr*0.01))*Math.exp(-t*7),vb=1+0.01*Math.sin(2*Math.PI*6*t);
-      d[st+i]+=0.5*env*(Math.sin(2*Math.PI*f*vb*t)+0.35*Math.sin(2*Math.PI*f*2*t)+0.12*Math.sin(2*Math.PI*f*3*t))/1.5;
-    }
-  }
+/* ---------- 🎁 Готовые звуки без микрофона: всё синтезируется здесь, без файлов ----------
+   Инструменты играют мелодии (их видно во вкладке «Ноты»), голоса животных — тон-источник через «рот» из двух резонансов (формант) */
+function dmRes(x,fc,q,sr){
+  /* резонатор второго порядка, частота может меняться во времени: fc(i) → Гц */
+  var y=new Float32Array(x.length),y1=0,y2=0,i;
+  for(i=0;i<x.length;i++){var f=fc(i),r=Math.exp(-Math.PI*(f/q)/sr),v=(1-r)*x[i]+2*r*Math.cos(2*Math.PI*f/sr)*y1-r*r*y2;y2=y1;y1=v;y[i]=v}
+  return y;
+}
+/* плавный путь по точкам [[время, значение], …] (по логарифму — как слышит ухо) */
+function dmPath(pts){return function(t){var k;if(t<=pts[0][0])return pts[0][1];for(k=1;k<pts.length;k++)if(t<=pts[k][0]){var u=(t-pts[k-1][0])/(pts[k][0]-pts[k-1][0]),s=0.5-0.5*Math.cos(Math.PI*u);return pts[k-1][1]*Math.pow(pts[k][1]/pts[k-1][1],s)}return pts[pts.length-1][1]}}
+var dmSeed=1;function dmNoise(){dmSeed=(dmSeed*16807)%2147483647;return dmSeed/1073741823.5-1}
+/* голос: пила с высотой f0(t), огибающая env(t), доля шума noise, через форманты [[путь F, Q, вес], …] */
+function dmVoice(d,sr,t0,dur,f0,env,noise,forms){
+  var n=Math.round(dur*sr),st=Math.round(t0*sr),x=new Float32Array(n),ph=0,i,k;
+  for(i=0;i<n;i++){var t=i/sr;ph+=f0(t)/sr;ph-=Math.floor(ph);x[i]=env(t)*((2*ph-1)*(1-noise)+noise*dmNoise())}
+  forms.forEach(function(F){var y=dmRes(x,function(j){return F[0](j/sr)},F[1],sr);for(k=0;k<n&&st+k<d.length;k++)d[st+k]+=F[2]*y[k]});
+}
+function dmEnv(a,rel,dur){return function(t){return Math.max(0,Math.min(1,t/a,(dur-t)/rel))}}
+function dmMidi(m){return 440*Math.pow(2,(m-69)/12)}
+var DEMOS=[
+  {id:'bird',e:'🐦',n:'Птичка',sec:2.4,say:'🐦 Птичка поёт!',make:function(d,sr){
+    var notes=[[659.25,0],[783.99,0.28],[987.77,0.56],[783.99,0.9],[1318.5,1.18]],i,k;
+    for(k=0;k<notes.length;k++){
+      var f=notes[k][0],st=Math.round(notes[k][1]*sr),len=Math.round(sr*0.34);
+      for(i=0;i<len&&st+i<d.length;i++){
+        var t=i/sr,env=Math.min(1,i/(sr*0.01))*Math.exp(-t*7),vb=1+0.01*Math.sin(2*Math.PI*6*t);
+        d[st+i]+=0.5*env*(Math.sin(2*Math.PI*f*vb*t)+0.35*Math.sin(2*Math.PI*f*2*t)+0.12*Math.sin(2*Math.PI*f*3*t))/1.5;
+      }
+    }}},
+  {id:'piano',e:'🎹',n:'Пианино',sec:3.6,say:'🎹 Пианино: «Во поле берёза стояла».',make:function(d,sr){
+    /* молоточек и струна: обертоны чуть выше кратных (струна жёсткая), высокие затухают быстрее */
+    var mel=[[69,0],[69,0.3],[69,0.6],[69,0.9],[67,1.2],[65,1.5],[65,1.8],[64,2.1],[62,2.4]];
+    mel.forEach(function(q){
+      var f=dmMidi(q[0]),st=Math.round(q[1]*sr),len=Math.min(d.length-st,Math.round(sr*1.2)),h,i;
+      for(h=1;h<=10;h++){var fh=h*f*Math.sqrt(1+0.0004*h*h),am=0.5/h;if(fh>sr/2.2)break;
+        for(i=0;i<len;i++){var t=i/sr;d[st+i]+=am*Math.min(1,t/0.003)*Math.exp(-t*(1.6+0.9*h))*Math.sin(2*Math.PI*fh*t)}}
+      for(i=0;i<Math.round(sr*0.006);i++)d[st+i]+=0.08*dmNoise()*(1-i/(sr*0.006));
+    })}},
+  {id:'accordion',e:'🪗',n:'Гармошка',sec:3,say:'🪗 Гармошка играет.',make:function(d,sr){
+    /* два язычка чуть врозь (±4 цента) — «дышащий» звук гармошки; меха плавно раздуваются */
+    var mel=[[72,0,0.28],[76,0.3,0.28],[79,0.6,0.28],[79,0.9,0.28],[81,1.2,0.28],[79,1.5,0.28],[76,1.8,0.28],[72,2.1,0.6]];
+    mel.forEach(function(q){
+      var f=dmMidi(q[0]),st=Math.round(q[1]*sr),len=Math.round(q[2]*sr);
+      [Math.pow(2,4/1200),Math.pow(2,-4/1200)].forEach(function(dt){
+        var h,i;
+        for(h=1;h<=12;h++){var fh=h*f*dt,am=(h%2?1:0.6)/Math.pow(h,0.7)*0.18;if(fh>sr/2.2)break;
+          for(i=0;i<len&&st+i<d.length;i++){var t=i/sr,en=Math.max(0,Math.min(1,t/0.04,(q[2]-t)/0.06))*(0.85+0.15*Math.sin(Math.PI*t/q[2]));d[st+i]+=am*en*Math.sin(2*Math.PI*fh*t)}}
+      });
+    })}},
+  {id:'jaw',e:'🎶',n:'Варган',sec:2.6,say:'🎶 Варган: «бойнь-бойнь».',make:function(d,sr){
+    /* язычок даёт низкий гудящий тон (Соль, 98 Гц), а рот двигает резонанс — отсюда «вау» */
+    var n=d.length,x=new Float32Array(n),ph=0,i,plk=0.5,FC=[[700,2300],[2300,900],[500,1600],[1900,700],[800,2400],[2000,800]];
+    for(i=0;i<n;i++){ph+=98/sr;ph-=Math.floor(ph);var t=i/sr,tt=t%plk;x[i]=((ph<0.08?1:0)-0.08)*Math.exp(-tt*2.2)*Math.min(1,tt/0.004)}
+    var fc=function(j){var t=j/sr,p=Math.min(FC.length-1,Math.floor(t/plk)),u=Math.min(1,(t%plk)/(plk*0.7));return FC[p][0]*Math.pow(FC[p][1]/FC[p][0],0.5-0.5*Math.cos(Math.PI*u))};
+    var y=dmRes(x,fc,9,sr),z=dmRes(x,function(){return 196},2,sr);
+    for(i=0;i<n;i++)d[i]=3*y[i]+1.2*z[i];
+    }},
+  {id:'cat',e:'🐱',n:'Кошка',sec:2.4,say:'🐱 Мяу!',make:function(d,sr){
+    [[0,1.0,1],[1.25,0.9,1.15]].forEach(function(m){var D=m[1],s=m[2],p=dmPath([[0,430*s],[0.3*D,760*s],[D,360*s]]);
+      dmVoice(d,sr,m[0],D,function(t){return p(t)*(1+0.01*Math.sin(2*Math.PI*6*t))},dmEnv(0.04,0.25,D),0.04,
+        [[dmPath([[0,350],[0.35*D,950],[D,420]]),6,1],[dmPath([[0,2400],[0.35*D,1500],[D,850]]),8,0.6]]);
+    })}},
+  {id:'dog',e:'🐶',n:'Собака',sec:1.6,say:'🐶 Гав-гав!',make:function(d,sr){
+    [0,0.32,0.95].forEach(function(t0){var D=0.17;
+      dmVoice(d,sr,t0,D,dmPath([[0,560],[D,320]]),function(t){return Math.min(1,t/0.008)*Math.exp(-t*12)},0.35,
+        [[function(){return 800},4,1],[function(){return 1700},5,0.5]]);
+    })}},
+  {id:'cow',e:'🐮',n:'Корова',sec:2.1,say:'🐮 Мууу!',make:function(d,sr){var D=1.9,p=dmPath([[0,112],[0.4,128],[D,96]]);
+    dmVoice(d,sr,0.05,D,function(t){return p(t)*(1+0.012*Math.sin(2*Math.PI*5*t))},dmEnv(0.15,0.35,D),0.06,
+      [[dmPath([[0,300],[0.5,480],[D,330]]),5,1],[function(){return 820},6,0.4]]);
+    }},
+  {id:'frog',e:'🐸',n:'Лягушка',sec:1.5,say:'🐸 Ква-ква!',make:function(d,sr){
+    [0,0.6].forEach(function(t0){var D=0.32;
+      dmVoice(d,sr,t0,D,function(t){return 170*(1+0.25*(Math.sin(2*Math.PI*28*t)>0?1:-1))},function(t){return Math.max(0,Math.min(1,t/0.02,(D-t)/0.08))},0.15,
+        [[dmPath([[0,480],[D,900]]),5,1],[dmPath([[0,1250],[D,1650]]),6,0.5]]);
+    })}},
+  {id:'hen',e:'🐔',n:'Курица',sec:1.6,say:'🐔 Ко-ко-ко-кудах!',make:function(d,sr){
+    [[0,0.09,650],[0.18,0.09,640],[0.36,0.09,660],[0.62,0.42,900]].forEach(function(c){var D=c[1],f=c[2];
+      dmVoice(d,sr,c[0],D,D>0.2?dmPath([[0,f],[0.3*D,f*1.25],[D,f*0.85]]):dmPath([[0,f],[D,f*0.9]]),function(t){return Math.max(0,Math.min(1,t/0.008,(D-t)/0.03))},0.25,
+        [[function(){return 950},6,1],[function(){return 2100},7,0.5]]);
+    })}}
+];
+var DEMO={};DEMOS.forEach(function(x){DEMO[x.id]=x});
+function loadDemo(id){
+  var D=DEMO[typeof id==='string'&&DEMO[id]?id:'bird'],c=ac(),sr=c.sampleRate,n=Math.round(sr*D.sec),b=c.createBuffer(1,n,sr),d=b.getChannelData(0),F=Math.round(sr*0.005),i;
+  dmSeed=7;D.make(d,sr);
+  /* мягкие края: без щелчка в начале и в конце */
+  for(i=0;i<F;i++){d[i]*=i/F;d[n-1-i]*=i/F}
   normalize(b);
   stopPlay();rawBuf=b;cleanBuf=null;gen++;applyBuf();active=[];lastId='orig';refreshTiles();showResult();
-  say('🐦 Птичка поёт! Смотри, как звук рисует');play();
+  say(D.say+' Смотри, как звук рисует');play();
 }
+/* окно выбора готового звука */
+function demoOpen(){
+  var g=$('dpGrid');
+  if(!g.children.length)DEMOS.forEach(function(x){
+    var b=document.createElement('button');b.className='dpb';b.setAttribute('data-demo',x.id);b.setAttribute('aria-label','Готовый звук: '+x.n);
+    b.innerHTML='<span>'+x.e+'</span><small>'+x.n+'</small>';
+    b.onclick=function(){vib(8);demoClose();gate.classList.add('hide');if(state==='idle')loadDemo(x.id)};
+    g.appendChild(b);
+  });
+  $('demoPick').hidden=false;
+}
+function demoClose(){$('demoPick').hidden=true}
+$('dpClose').onclick=demoClose;
+$('demoPick').addEventListener('click',function(e){if(e.target===$('demoPick'))demoClose()});
 function trHasBlue(){var cv=artistCanvas(),i;for(i=0;i<cv.d.length;i++)if(cv.d[i]>0&&cv.p[i]<-60)return true;return false}
 function trRecDone(c){return !!buffer&&buffer!==c.buf0&&state==='idle'}
 function trKid(){

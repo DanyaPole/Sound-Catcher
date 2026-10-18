@@ -8,6 +8,7 @@
   var $=function(id){return D.getElementById(id)};
   function hash(ab){var h=2166136261>>>0,c,k;for(c=0;c<ab.numberOfChannels;c++){var d=ab.getChannelData(c),u=new Uint32Array(d.buffer,d.byteOffset,d.length);for(k=0;k<u.length;k++)h=Math.imul(h^u[k],16777619)>>>0}return h.toString(16)+':'+ab.length}
   function chips(){return [].map.call(D.querySelectorAll('#now .chip:not(.calm) span'),function(s){return s.textContent})}
+  function pick(id){$('demoBtn').click();var b=D.querySelector('#dpGrid [data-demo='+id+']');if(b)b.click()}
   function calm(){return !!D.querySelector('#now .chip.calm')}
   try{
     try{localStorage.setItem('zv-tour','{"seen":1}');localStorage.removeItem('zv-curves');localStorage.removeItem('zv-echo')}catch(e){}
@@ -84,7 +85,10 @@
     /* ---- шаг 4: демо и подписи 🎲 ---- */
     var db=$('demoBtn'),dr=db.getBoundingClientRect(),rr=$('rec').getBoundingClientRect();
     check('D1 на главном экране под кнопкой записи — «🐦 Попробовать без микрофона»',dr.height>=44&&dr.top>rr.bottom&&dr.top-rr.bottom<200&&/без микрофона/.test(db.textContent),Math.round(dr.top-rr.bottom)+' px ниже записи');
-    var g0=T.slices.src();db.click();await sleep(300);P.stop();
+    var g0=T.slices.src();db.click();await sleep(100);
+    var dp=$('demoPick'),nb=D.querySelectorAll('#dpGrid .dpb').length;
+    check('D1b «Попробовать» открывает окно: 9 готовых звуков',!dp.hidden&&nb===9,nb+' звуков');
+    D.querySelector('#dpGrid [data-demo=bird]').click();await sleep(300);P.stop();
     check('D2 демо загружает птичку (2,4 с) и показывает результат',T.slices.src()!==g0&&Math.abs(T.slices.src().duration-2.4)<0.01&&$('fx').classList.contains('show'),T.slices.src().duration.toFixed(2)+' с');
     var sb=$('surprise');
     check('D3 у 🎲 в плеере видна подпись «сюрприз», а в описании — что запись не меняется',/сюрприз/.test(sb.textContent)&&/запись не меняется/.test(sb.getAttribute('aria-label'))&&sb.getBoundingClientRect().height>=44,sb.textContent);
@@ -95,7 +99,7 @@
     $('gate').classList.remove('hide');await sleep(50);
     var gd=$('gateDemo'),gr=gd.getBoundingClientRect();
     check('D7 и на экране «Разреши микрофон» есть «Попробовать без микрофона»',gr.height>=44&&gr.bottom<=812,Math.round(gr.top)+'–'+Math.round(gr.bottom)+' px');
-    gd.click();await sleep(300);P.stop();
+    gd.click();await sleep(100);D.querySelector('#dpGrid [data-demo=bird]').click();await sleep(300);P.stop();
     check('D8 оттуда сразу птичка, экран микрофона закрыт',$('gate').classList.contains('hide')&&Math.abs(T.slices.src().duration-2.4)<0.01,'');
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
 
@@ -119,7 +123,7 @@
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
 
     /* ---- шаг 6: «Чистый звук» ---- */
-    $('demoBtn').click();await sleep(300);P.stop();
+    pick('bird');await sleep(300);P.stop();
     var N=T.notes,runs=N.runs();N.set(1,2);var k0=N.key();
     $('chipClean').click();await sleep(300);P.stop();
     check('C1 «Чистый звук» не стирает правку ноты (Соль +2 осталась)',N.key()!==''&&N.edits()[1]===2&&/Чистый/.test(chips().join('|')),k0+' → '+N.key()+' · '+$('msg').textContent);
@@ -136,7 +140,7 @@
     check('C3 «Чистый звук» не громче исходной записи (раньше — до 0,9)',p1<=p0*1.001&&p1>0.05,'пик '+p0.toFixed(3)+' → '+p1.toFixed(3));
     $('chipClean').click();await sleep(200);P.stop();
     /* выход не сплющивает звук: у птички громкое начало ноты и тихий хвост остаются в той же пропорции */
-    $('demoBtn').click();await sleep(300);P.stop();
+    pick('bird');await sleep(300);P.stop();
     var bs=T.slices.src(),bo=await T.render();
     function seg(b,a,e){var d=b.getChannelData(0),r=b.sampleRate,q,s2=0,n=0;for(q=Math.round(a*r);q<Math.round(e*r);q++){s2+=d[q]*d[q];n++}return Math.sqrt(s2/n)}
     /* у компрессора есть своя задержка — сначала находим её по совпадению волны (0–20 мс) */
@@ -147,6 +151,25 @@
     T.fx([['rock',3],['echo',3]]);T.out(2,0);
     var hot=await T.render(),hp=0,hd=hot.getChannelData(0);for(i=0;i<hd.length;i++)hp=Math.max(hp,Math.abs(hd[i]));
     check('X2 громкость 200% + Рок + Эхо: всё равно не выше 1 (мягкий потолок)',hp<=1&&hp>0.85,'пик '+hp.toFixed(3));
+    T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
+
+    /* ---- шаг 7: готовые звуки ---- */
+    var SECS={bird:2.4,piano:3.6,accordion:3,jaw:2.6,cat:2.4,dog:1.6,cow:2.1,frog:1.5,hen:1.6},bad7=[],info=[];
+    for(var id in SECS){
+      pick(id);await sleep(150);P.stop();
+      var b7=T.slices.src(),d7=b7.getChannelData(0),pk7=0,e7=0,nan=false;
+      for(i=0;i<d7.length;i++){var v7=d7[i];if(!isFinite(v7))nan=true;pk7=Math.max(pk7,Math.abs(v7));e7+=v7*v7}
+      var rm7=Math.sqrt(e7/d7.length);info.push(id+' '+pk7.toFixed(2)+'/'+rm7.toFixed(3));
+      if(nan||Math.abs(pk7-0.7)>0.001||rm7<0.02||Math.abs(b7.duration-SECS[id])>0.01||!$('demoPick').hidden)bad7.push(id);
+    }
+    check('G1 все 9 готовых звуков: звучат, без NaN, выровнены до 0,7, нужной длины',!bad7.length,bad7.length?'плохо: '+bad7.join(','):info.join(' · '));
+    pick('piano');await sleep(150);P.stop();
+    var pr=T.notes.runs().map(function(r){return r.m});
+    /* одинаковые ноты подряд вкладка «Ноты» показывает одной нотой: Ля×4 → Ля, Фа×2 → Фа */
+    check('G2 пианино играет «Во поле берёза»: Ля Соль Фа Ми Ре',pr.join(',')==='69,67,65,64,62',pr.join(','));
+    pick('accordion');await sleep(150);P.stop();
+    var ar=T.notes.runs().map(function(r){return r.m});
+    check('G3 гармошка: До Ми Соль … До',ar[0]===72&&ar[1]===76&&ar[2]===79&&ar[ar.length-1]===72,ar.join(','));
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
