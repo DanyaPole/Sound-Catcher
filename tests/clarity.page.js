@@ -180,6 +180,20 @@
     pick('accordion');await sleep(150);P.stop();
     var ar=T.notes.runs().map(function(r){return r.m});
     check('G3 гармошка: До Ми Соль … До',ar[0]===72&&ar[1]===76&&ar[2]===79&&ar[ar.length-1]===72,ar.join(','));
+    /* громкость эффектов: ни один не громче −6 дБFS (RMS звучащей части) и пик не выше 1 — без компрессора на выходе это держат сами эффекты */
+    var sd7=5,Lh=Math.round(sr*2),H=new Float32Array(Lh);
+    for(i=0;i<Lh;i++){var th=i/sr,sg=[[0.1,0.5],[0.7,1.1],[1.3,1.8]].some(function(r){return th>=r[0]&&th<r[1]}),eh=sg?Math.min(1,((th-0.1)%0.6)/0.03):0;sd7=(sd7*16807)%2147483647;H[i]=eh*(0.35*Math.sin(2*Math.PI*140*th)+0.25*Math.sin(2*Math.PI*560*th)+0.15*Math.sin(2*Math.PI*1400*th)+0.03*(sd7/1073741823.5-1))}
+    var pkh=0;for(i=0;i<Lh;i++)pkh=Math.max(pkh,Math.abs(H[i]));for(i=0;i<Lh;i++)H[i]*=0.7/pkh;
+    T.load([H],sr);T.out(1,0);P.mix(1);
+    function voiced(b){var d=b.getChannelData(0),w=441,hot=0,n=0,q,k;for(q=0;q+w<d.length;q+=w){var e=0;for(k=0;k<w;k++)e+=d[q+k]*d[q+k];e=Math.sqrt(e/w);if(e>0.02){hot+=e*e;n++}}return n?Math.sqrt(hot/n):0}
+    var ids7=['echo','cave','warp','low','high','rev','robot','trem','ufo','radio','water','rock','chorus','retro','parrot','pan','flange','phaser','tape','slow','ring','space','wah'],loud=[],worst7=['',0],pk7=0;
+    for(var q7=0;q7<ids7.length;q7++)for(var l7=1;l7<=3;l7++){
+      T.fx([[ids7[q7],l7]]);var b7=await T.render(),v7=voiced(b7),d7=b7.getChannelData(0);
+      for(i=0;i<d7.length;i++)pk7=Math.max(pk7,Math.abs(d7[i]));
+      if(v7>worst7[1])worst7=[ids7[q7]+l7,v7];if(v7>0.5)loud.push(ids7[q7]+l7+' '+(20*Math.log10(v7)).toFixed(1)+' дБFS');
+    }
+    check('X3 ни один эффект (23 × 3 силы) не громче −6 дБFS по звучащей части, пик ≤ 1',!loud.length&&pk7<=1,loud.length?'громче: '+loud.join(', '):'самый громкий '+worst7[0]+' '+(20*Math.log10(worst7[1])).toFixed(1)+' дБFS, пик '+pk7.toFixed(2));
+    T.fx([]);
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 

@@ -1363,10 +1363,10 @@ function build(c,dest,o){
   if((s=S('radio'))){
     seq(filt('highpass',80*Math.pow(5,s),0.9));seq(filt('lowpass',12000*Math.pow(0.25,s),0.9));
     var pk=filt('peaking',1700,1.2);pk.gain.value=7*s;seq(pk);
-    seq(node(shaper(c,1+4*s)));seq(gain(1+0.6*s));
+    seq(node(shaper(c,1+4*s)));seq(gain((1+0.6*s)*0.4));   /* ×0,4: без компрессора на выходе Рация была бы −1,5 дБFS (RMS), теперь ≤ −6 */
   }
-  if((s=S('water'))){seq(filt('lowpass',8000*Math.pow(450/8000,s),1+3*s));seq(gain(1+0.8*s))}
-  if((s=S('rock'))){seq(node(shaper(c,Math.pow(40,s))));seq(filt('lowpass',5500,0.7));seq(gain(0.8))}
+  if((s=S('water'))){seq(filt('lowpass',8000*Math.pow(450/8000,s),1+3*s));seq(gain((1+0.8*s)*0.85))}
+  if((s=S('rock'))){seq(node(shaper(c,Math.pow(40,s))));seq(filt('lowpass',5500,0.7));seq(gain(0.5))}   /* 0,8 → 0,5: Рок 100% был бы −2,3 дБFS, теперь ≤ −6 */
   if((s=S('robot')))par(1-s,1.6*s,function(inN){var rg=gain(0),o=osc('square',55);o.connect(rg.gain);inN.connect(rg);return rg});
   if((s=S('trem'))){var tg=gain(1-0.5*s),o3=osc('sine',9),am=gain(0.5*s);o3.connect(am);am.connect(tg.gain);seq(tg)}
   if((s=S('chorus')))par(1,0.25+0.45*s,function(inN){
@@ -1385,7 +1385,7 @@ function build(c,dest,o){
   if((s=S('cave')))par(1-0.3*s,0.35+0.6*s,function(inN){
     var cv=node(c.createConvolver());cv.buffer=makeIR(c,caveLen(s));inN.connect(cv);return cv;
   });
-  if((s=S('tape'))){seq(filt('lowpass',7000*Math.pow(0.45,s),0.8));seq(node(shaper(c,1+1.5*s)))}
+  if((s=S('tape'))){seq(filt('lowpass',7000*Math.pow(0.45,s),0.8));seq(node(shaper(c,1+1.5*s)));seq(gain(0.85))}
   /* колокол: звук умножается на ровный тон — появляются звенящие «железные» ноты */
   if((s=S('ring')))par(1-0.6*s,0.9+0.6*s,function(inN){
     var rg=gain(0),o4=osc('sine',300+260*s);o4.connect(rg.gain);inN.connect(rg);return rg;
