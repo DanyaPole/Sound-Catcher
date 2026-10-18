@@ -42,8 +42,6 @@ button{font-family:inherit;font-weight:800}
 .cb{position:relative;flex:0 0 auto;width:48px;height:48px;border-radius:50%;border:4px solid #fff;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.15)}
 .cb:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
 #portal{background:conic-gradient(from 200deg,#ff3d71,#ff9f1c,#ffd23f,#22c7a9,#22b8cf,#7c4dff,#ff3d71)}
-#wsnd{background:var(--vio);font-size:20px;display:none}
-#wsnd.off{opacity:.5}
 #help{background:var(--sun);color:var(--ink);display:none}
 #portal.hint{animation:tr-portal 1.2s ease-in-out infinite}
 @keyframes tr-portal{0%,100%{transform:scale(1);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 0 rgba(255,210,63,.95)}50%{transform:scale(1.12);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 14px rgba(255,210,63,0)}}
@@ -298,8 +296,6 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 #worldpaint{z-index:8;mix-blend-mode:screen;opacity:.7}
 #worldfx{z-index:8;mix-blend-mode:screen}
 body.world #world,body.world #worldpaint,body.world #worldfx{display:block}
-#whud{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 74px);transform:translateX(-50%);z-index:9;background:rgba(10,7,32,.82);color:#f3eeff;border:2px solid rgba(255,255,255,.3);border-radius:999px;padding:8px 18px;font-size:17px;opacity:0;pointer-events:none;transition:opacity .2s}
-#whud.show{opacity:1}
 .ink{position:fixed;inset:0;z-index:50;pointer-events:none;clip-path:circle(0 at var(--cx) var(--cy));animation:ink-grow .75s cubic-bezier(.5,0,.8,.6) forwards;transition:opacity .45s}
 .ink.out{opacity:0}
 .ink.still{clip-path:none;opacity:0;animation:ink-in .3s forwards}
@@ -307,7 +303,7 @@ body.world #world,body.world #worldpaint,body.world #worldfx{display:block}
 @keyframes ink-in{to{opacity:1}}
 html.world{background:#0a0720;touch-action:pan-y}
 body.world{--ink:#f3eeff;background:none;color:var(--ink)}
-body.world #wsnd,body.world #help,body.world #shareArt{display:flex}
+body.world #help,body.world #shareArt{display:flex}
 body.world .track{stroke:rgba(255,255,255,.22)}
 body.world #msg,body.world .panel,body.world .knob,body.world .sw,body.world .tabs,body.world .hs:not(.empty),body.world #wave{background:var(--glass);border-color:rgba(255,255,255,.2);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.28)}
 body.world #tempBox{background:linear-gradient(var(--tw,transparent),var(--tw,transparent)),var(--glass)}
@@ -348,9 +344,13 @@ body.world #crvBox{display:flex}
 .crl button.on{background:var(--lc);color:#1a1033;border-color:#fff}
 .crl button.has::after{content:'';position:absolute;top:4px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--lc);box-shadow:0 0 0 2px #0a0720}
 .crl button.on.has::after{background:#1a1033;box-shadow:none}
-#crv{display:block;width:100%;height:150px;margin-top:8px;border-radius:14px;background:rgba(255,255,255,.06);touch-action:none;cursor:crosshair}
+#crv{display:block;width:100%;height:150px;margin-top:4px;border-radius:14px;background:rgba(255,255,255,.06);touch-action:none;cursor:crosshair;outline:3px dashed #ffd23f;outline-offset:2px}
+/* где рисовать — одно правило для обоих холстов: яркая пунктирная рамка и ярлык над ней */
+.drawhere{display:inline-block;align-self:flex-start;margin:8px 0 2px;padding:3px 12px;border-radius:999px;background:#ffd23f;color:#1a1033;font-size:13px;font-weight:800}
+#wNote{display:none;max-width:340px;font-size:13px;text-align:center;color:#f3eeff;opacity:.85;padding:0 12px}
+body.world #wNote{display:block}
 .crs .nb{font-size:18px}
-#ecWrap{position:relative;width:100%;aspect-ratio:1.6;border-radius:18px;overflow:hidden;background:#0b0a22;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 28px rgba(0,0,0,.35);transition:opacity .25s}
+#ecWrap{position:relative;width:100%;aspect-ratio:1.6;border-radius:18px;overflow:hidden;background:#0b0a22;box-shadow:0 10px 28px rgba(0,0,0,.35);outline:3px dashed #ffd23f;outline-offset:3px;transition:opacity .25s}
 #echoBox.off #ecWrap{opacity:.7}
 #ecWrap canvas{position:absolute;inset:0;width:100%;height:100%}
 #ecTop{touch-action:none;cursor:crosshair}
@@ -509,7 +509,6 @@ body.world #crvBox{display:flex}
 <canvas id="world" aria-hidden="true"></canvas>
 <canvas id="worldpaint" aria-hidden="true"></canvas>
 <canvas id="worldfx" aria-hidden="true"></canvas>
-<div id="whud" role="status" aria-live="polite"></div>
 <div id="tourPick" hidden role="dialog" aria-label="Обучение"><div class="tp-card">
   <div class="tp-ask"><div class="tp-bf">🦋</div><div class="tp-h">Показать, как играть?</div><div class="tp-sub">Короткое обучение — 1–2 минуты</div>
     <button class="tp-yes" data-a="yes">Да, покажи! 👍</button>
@@ -527,7 +526,6 @@ body.world #crvBox{display:flex}
   <h1 class="brand logo"><img src="icon.svg" alt="" width="36" height="36"><span><b>З</b><b>в</b><b>у</b><b>к</b><b>о</b><b>л</b><b>о</b><b>в</b><b>к</b><b>а</b></span></h1>
   <div class="bar-btns">
     <button class="cb" id="help" aria-label="Как играть">❓</button>
-    <button class="cb" id="wsnd" aria-label="Звуки касаний" aria-pressed="true">🔔</button>
     <button class="cb" id="portal" aria-label="Параллельный мир" aria-pressed="false">🎨</button>
   </div>
 </header>
@@ -537,6 +535,7 @@ body.world #crvBox{display:flex}
 </div>
 <div id="eq"><i></i><i></i><i></i><i></i><i></i></div>
 <div id="msg">Нажми на красную кнопку! 👆</div>
+<div id="wNote">👀 Фон — это картина твоего звука, она рисуется сама. Рисовать можно в рамках «✏️ Рисуй здесь».</div>
 <div id="fx">
   <div id="dock">
   <div class="row tbar" id="tbar">
@@ -581,6 +580,7 @@ body.world #crvBox{display:flex}
   <div id="echoBox" class="off">
     <div class="sec">🎨 Холст эха</div>
     <button class="sw" id="artistSw" role="switch" aria-checked="false"><span class="kn"></span><span class="sl">🖌️ Эхо рисую я</span><small id="artistTxt">эхо зазвучит там, где краска</small></button>
+    <div class="drawhere" id="ecHere">✏️ Рисуй здесь — где и каким прозвучит эхо</div>
     <div id="ecWrap"><canvas id="ecPaint"></canvas><canvas id="ecTop" aria-label="Холст эха: нарисуй, где должно прозвучать эхо"></canvas><div id="ecRead"></div></div>
     <div class="ec-ent" id="ecEntBox" title="Случайность картины"><span aria-hidden="true">🎯</span><div id="ecEnt"><i></i></div><span aria-hidden="true">🎲</span><b id="ecEntTxt" aria-live="polite">предсказуемо</b></div>
     <div class="ec-ctl"><div id="ecTools"></div><div id="ecPal"></div></div>
@@ -594,6 +594,7 @@ body.world #crvBox{display:flex}
     <div class="sec">〰️ Рисую звук во времени</div>
     <div class="knob crvk">
       <div class="crl" id="crvLanes" role="tablist" aria-label="Что рисовать"></div>
+      <div class="drawhere" id="crvHere">✏️ Рисуй здесь — линию слева направо</div>
       <canvas id="crv" aria-label="Проведи линию слева направо: так звук будет меняться во времени"></canvas>
       <div class="ntools crs" id="crvShapes"></div>
       <div class="cap" id="crvCap">👆 Проведи линию слева направо — так звук будет меняться</div>
@@ -2372,7 +2373,7 @@ function artistPlan(){
 var W={on:false,cv:null,g:null,pcv:null,pg:null,fcv:null,fg:null,w:0,h:0,dpr:1,raf:0,last:0,n:0,lvl:0,td:null,fd:null,
   bands:new Float32Array(28),px:-1,py:0,src:'',ripples:[],soundOn:true,still:false,recAn:null,recSrc:null,
   dtAvg:16,dtN:0,half:false,skip:false,wired:false,x:-1,dirty:true,prevRms:0,cost:0,keep:null,onsetT:0,brKey:'',br:null,gest:null,hudT:0};
-var WBANDS=28,WKEY='zv-world',WNOTES=[0,2,4,7,9,12,14,16,19,21];
+var WBANDS=28,WKEY='zv-world';
 function wStill(){try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}}
 function wHue(i){return i/WBANDS*280-TEMP*25}
 /* чтение анализатора: громкость и 28 полос (тот же лог-ряд 100 Гц … 8 кГц, что у «Спектра») */
@@ -2499,51 +2500,9 @@ function wFrame(now){
     fg.strokeStyle='hsla('+rp.hue+',95%,70%,'+(1-age)*0.9*(rp.a||1)+')';fg.lineWidth=3;
     fg.beginPath();fg.arc(rp.x,rp.y,W.still?10:8+age*90,0,6.2832);fg.stroke();
   }
-  ecFrame(now);W.cost+=(performance.now()-cost0-W.cost)*0.1;if(W.hudT&&now>W.hudT){W.hudT=0;$('whud').classList.remove('show')}
+  ecFrame(now);W.cost+=(performance.now()-cost0-W.cost)*0.1
 }
-/* касания мира. Касание — круг и нота пентатоники (вверх выше, влево/вправо в то же ухо).
-   Горизонтальный свайп по пустому месту — температура звука (влево холоднее, вправо теплее) */
-function wBlocked(t){return !!(t&&t.closest&&t.closest('button,input,canvas,summary,.panel,.knob,.sw,.hs,.tabs,.t,.bar,.ec-ent,.ec-ctl,#ecPre,#gate,#splash'))}
-function wHud(txt){var h=$('whud');h.textContent=txt;h.classList.add('show');W.hudT=performance.now()+1400}
-function wDown(e){
-  if(!W.on||wBlocked(e.target)){W.gest=null;return}
-  W.gest={x:e.clientX,y:e.clientY,mode:'',temp:+$('temp').value};
-}
-function wMove(e){
-  var G=W.gest;if(!G)return;
-  var dx=e.clientX-G.x,dy=e.clientY-G.y;
-  if(!G.mode){
-    if(Math.abs(dx)>14&&Math.abs(dx)>Math.abs(dy)*1.3)G.mode='temp';
-    else if(Math.abs(dy)>14)G.mode='scroll';
-    else return;
-  }
-  if(G.mode==='temp'){
-    var el=$('temp'),v=Math.max(-100,Math.min(100,G.temp+dx/W.w*220));
-    el.value=Math.round(v);el.dispatchEvent(new Event('input'));
-    wHud('🌡️ '+$('tempTxt').textContent);W.dirty=true;
-  }
-}
-function wUp(e){
-  var G=W.gest;W.gest=null;if(!G||!W.on)return;
-  if(G.mode==='temp'){$('temp').dispatchEvent(new Event('change'));return}
-  if(G.mode)return;
-  wTap(e.clientX,e.clientY);
-}
-function wTap(x,y){W.taps=(W.taps||0)+1;
-  var fy=1-y/W.h,idx=Math.max(0,Math.min(WNOTES.length-1,Math.floor(fy*WNOTES.length)));
-  W.ripples.push({x:x,y:y,t:performance.now(),hue:(idx/WNOTES.length)*280-TEMP*25,a:1});
-  vib(8);
-  if(!W.soundOn)return;
-  try{
-    var c=ac(),o=c.createOscillator(),gn=c.createGain(),f=261.63*Math.pow(2,WNOTES[idx]/12),now=c.currentTime;
-    o.type='triangle';o.frequency.value=f;
-    gn.gain.setValueAtTime(0,now);gn.gain.linearRampToValueAtTime(0.14,now+0.015);gn.gain.exponentialRampToValueAtTime(0.0008,now+0.5);
-    var last=gn;
-    if(c.createStereoPanner){var p=c.createStereoPanner();p.pan.value=Math.max(-1,Math.min(1,x/W.w*2-1));gn.connect(p);last=p}
-    o.connect(gn);last.connect(c.destination);o.start(now);o.stop(now+0.55);
-    o.onended=function(){try{o.disconnect();gn.disconnect();last.disconnect()}catch(x2){}};
-  }catch(x3){}
-}
+/* фон мира только показывает звук: касания и свайпы по нему ничего не делают (рисуют в рамках «✏️ Рисуй здесь») */
 function wRecOn(s){
   if(!W.on)return;
   try{
@@ -2566,13 +2525,11 @@ function wApply(on){
     }
     if(!W.wired){
       W.wired=true;
-      document.addEventListener('pointerdown',wDown);document.addEventListener('pointermove',wMove);
-      document.addEventListener('pointerup',wUp);document.addEventListener('pointercancel',function(){W.gest=null});
       window.addEventListener('resize',function(){if(W.on)wSize()});
     }
     wSize();W.half=false;W.dtN=0;W.src='';W.brKey='';
     W.last=performance.now();cancelAnimationFrame(W.raf);W.raf=requestAnimationFrame(wFrame);
-    say('Добро пожаловать в параллельный мир! 🌌 Проведи пальцем вбок — звук теплее или холоднее');
+    say('Добро пожаловать в параллельный мир! 🌌 Фон рисует твой звук сам. Рисовать — в рамках «✏️ Рисуй здесь»');
   }else{
     cancelAnimationFrame(W.raf);wRecOff();
     say(buffer?'Ты вернулся в обычный мир 🌤️':'Нажми на красную кнопку! 👆');
@@ -2595,10 +2552,6 @@ function wSet(on,quiet){
   d.addEventListener('animationend',mid);setTimeout(mid,still?450:1000);
 }
 $('portal').onclick=function(){bounce($('portal'));wSet(!W.on)};
-$('wsnd').onclick=function(){
-  W.soundOn=!W.soundOn;var b=$('wsnd');b.classList.toggle('off',!W.soundOn);b.setAttribute('aria-pressed',W.soundOn?'true':'false');
-  say(W.soundOn?'🔔 Мир звучит от касаний':'🔕 Касания без звука');
-};
 /* (восстановление мира из сохранённого состояния — в конце скрипта, когда всё уже определено) */
 /* сколько клеток картины закрашено (для проверки, что звук действительно рисует) */
 function wStats(){
@@ -3590,10 +3543,9 @@ function trKid(){
   return [
     {sel:'#rec',text:function(){return state==='rec'?'⏹ Нажми ещё раз!':'🎤 Нажми и скажи «Привет!»'},act:[['🐦 Или возьми птичку',loadDemo]],
       enter:function(c){c.buf0=buffer},done:trRecDone},
-    {sel:null,text:'🎨 Смотри! Звук рисует картинку!',
+    {sel:null,text:'🎨 Смотри! Звук сам рисует картинку!',
       enter:function(c){if(buffer&&!vizAn)play()},
       done:function(c,el){if(playT>0.2)c.seen=true;return (c.seen&&playT<0)||el>6500}},
-    {sel:'@center',text:'👆 Тронь экран пальцем!',enter:function(c){c.pc0=TR.pc},done:function(c){return TR.pc>c.pc0}},
     {sel:'#grid .t[data-id=low]',text:'🐘 Нажми на слона!',enter:function(c){c.fx0=fxKey()},done:function(c){return active.length>0&&fxKey()!==c.fx0}},
     {sel:'#ecWrap',text:'✏️ Нарисуй пальцем точки!',
       enter:function(c){ecInit();ecPush();saClear(artistCanvas());ecChanged(false);ecSelTool('brush');ecSelPaint('mixed');c.undo0=EC.undo.length},
@@ -3619,7 +3571,7 @@ function trAdult(){
     {sel:'#crv',top:true,text:'Дорожки времени: 🔊 громкость, 🎵 высота, 👂 ухо, ✨ яркость, 🪄 доля эффекта. Проведите линию слева направо — параметр меняется по ходу звука. Под холстом — формы, 🎲 и ↺.',
       act:[['Показать как',function(){crvInit();crvLane('pitch',true);var b=document.querySelector('#crvShapes [data-shape=steps]');if(b)b.click()}]],
       enter:function(c){crvInit();c.s0=CV.strokes},done:function(c){return CV.strokes>c.s0}},
-    {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, «🎲 Всё случайно во времени» — дорожки, готовые картины — миниатюры, свайп вбок по тёмному месту — температура, 🖼️ сохраняет картину звука.',
+    {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, «🎲 Всё случайно во времени» — дорожки, готовые картины — миниатюры, ↶ ↷ отменяют любое изменение, ⇄ сравнивает с исходным, 🖼️ сохраняет картину звука.',
       act:[['Готово ✓',function(){trEnd(true)}]]}
   ];
 }

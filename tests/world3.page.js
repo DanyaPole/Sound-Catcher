@@ -51,32 +51,17 @@
     check('B2 эхо: на ударах появляются круги повторов (3 на удар)',maxR>=3,'одновременно кругов: '+maxR);
     T.fx([]);
 
-    /* B3. жест температуры: горизонтальный свайп по пустому месту */
-    var vol0=T.vol(),t0=T.temp();
-    ptr('pointerdown',100,300);ptr('pointermove',160,305);ptr('pointermove',230,306);
-    var hud=document.getElementById('whud').classList.contains('show');
-    ptr('pointerup',230,306);
-    await sleep(50);
-    var t1=T.temp(),sl=+document.getElementById('temp').value;
-    check('B3 свайп вправо по пустому месту: звук теплее, ползунок и значение совпадают',t1>t0+0.2&&Math.abs(sl/100-t1)<0.01,'температура '+t0.toFixed(2)+' → '+t1.toFixed(2)+', ползунок '+sl);
-    check('B3b во время жеста показана подсказка',hud,'');
-    ptr('pointerdown',300,300);ptr('pointermove',200,298);ptr('pointermove',120,296);ptr('pointerup',120,296);
-    await sleep(50);
-    check('B4 свайп влево: холоднее',T.temp()<t1-0.2,'→ '+T.temp().toFixed(2));
-    check('B4b громкость жестом не меняется',T.vol()===vol0,'');
-
-    /* B5. вертикальный свайп — это прокрутка: ни температуры, ни ноты */
-    var tt=T.temp(),r0=T.ripples();
-    ptr('pointerdown',200,300);ptr('pointermove',202,340);ptr('pointermove',203,420);ptr('pointerup',203,420);
-    await sleep(50);
-    check('B5 вертикальный свайп не трогает температуру и не играет ноту',T.temp()===tt&&T.ripples()<=r0,'');
-
-    /* B6. касание: круг и нота (звук вкл.) */
+    /* B3–B6. фон мира только показывает звук: свайп и касание по нему ничего не меняют и не звучат */
     for(i=0;i<60&&T.ripples()>0;i++)await sleep(100);
-    var r1=T.ripples();
+    var vol0=T.vol(),t0=T.temp(),r0=T.ripples(),m0=document.getElementById('msg').textContent;
+    ptr('pointerdown',100,300);ptr('pointermove',160,305);ptr('pointermove',230,306);ptr('pointerup',230,306);
     ptr('pointerdown',250,500);ptr('pointerup',250,500);
-    await sleep(60);
-    check('B6 касание рисует круг',T.ripples()>r1,'кругов '+r1+' → '+T.ripples());
+    await sleep(80);
+    check('B3 свайп вбок по фону не меняет температуру и громкость',T.temp()===t0&&T.vol()===vol0,'температура '+t0+' → '+T.temp());
+    check('B4 касание фона не рисует кругов',T.ripples()===r0,'кругов '+r0+' → '+T.ripples());
+    check('B5 под плеером подпись: фон — картина звука, рисовать в рамках',getComputedStyle(document.getElementById('wNote')).display==='block'&&/Рисуй здесь/.test(document.getElementById('wNote').textContent),'');
+    var eh=document.getElementById('ecHere'),ew=document.getElementById('ecWrap');
+    check('B6 холст эха в пунктирной рамке с ярлыком «✏️ Рисуй здесь»',!!eh&&/Рисуй здесь/.test(eh.textContent)&&/dashed/.test(getComputedStyle(ew).outlineStyle),getComputedStyle(ew).outlineStyle);
 
     /* B7. картина записи из настоящего спектра: растущий тон — картина идёт вверх */
     var th=T.thumb(),C=36,B=12;

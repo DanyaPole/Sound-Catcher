@@ -70,20 +70,16 @@
     q('#rec').click();
     check('K1b после записи — шаг 2 («звук рисует»)',await until(function(){return T.tour.state().i===1},8000),'');
     check('K2 бабочка сама переходит дальше, когда звук отыграл и нарисовал',await until(function(){return T.tour.state().i===2},12000),'');
-    await geo('малыш, шаг 3 (коснись экрана)');
-    var pc0=T.tour.taps();
-    document.body.dispatchEvent(new PointerEvent('pointerdown',{clientX:30,clientY:300,bubbles:true,pointerId:3}));
-    document.body.dispatchEvent(new PointerEvent('pointerup',{clientX:30,clientY:300,bubbles:true,pointerId:3}));
-    check('K3 касание экрана засчитано (даже без кнопки «Далее»)',await until(function(){return T.tour.state().i===3},4000),'');
-    await geo('малыш, шаг 4 (слон)');
+    /* шага «Тронь экран» больше нет: фон мира только показывает звук */
+    await geo('малыш, шаг 3 (слон)');
     q('#grid .t[data-id=low]').click();
-    check('K4 выбрал слона: шаг пройден и звук играет',await until(function(){return T.tour.state().i===4},4000),'');
-    await geo('малыш, шаг 5 (нарисуй эхо)');
+    check('K4 выбрал слона: шаг пройден и звук играет',await until(function(){return T.tour.state().i===3},4000),'');
+    await geo('малыш, шаг 4 (нарисуй эхо)');
     stroke(0.3,0.5,0.7,0.45,14);
-    check('K5 нарисовал точки: эхо включилось само и слышно',await until(function(){return T.tour.state().i===5&&T.ec.on()},4000),'эхо вкл: '+T.ec.on());
-    await geo('малыш, шаг 6 (проведи линию)');
+    check('K5 нарисовал точки: эхо включилось само и слышно',await until(function(){return T.tour.state().i===4&&T.ec.on()},4000),'эхо вкл: '+T.ec.on());
+    await geo('малыш, шаг 5 (проведи линию)');
     cstroke();
-    check('K5b провёл линию высоты — шаг пройден, дорожка звучит',await until(function(){return T.tour.state().i===6&&T.curves.on()},4000),T.curves.key());
+    check('K5b провёл линию высоты — шаг пройден, дорожка звучит',await until(function(){return T.tour.state().i===5&&T.curves.on()},4000),T.curves.key());
     await geo('малыш, награда');
     check('K6 награда: «Ты художник звука!»',/художник звука/.test(T.tour.state().text),T.tour.state().text);
     q('.tr-act button').click();

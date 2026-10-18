@@ -14,7 +14,7 @@
   function hit(a,b){return a.left<b.right-1&&b.left<a.right-1&&a.top<b.bottom-1&&b.top<a.bottom-1}
   /* круглые кнопки шапки не лежат поверх других элементов ни при какой прокрутке */
   function covered(){
-    var top=['portal','wsnd','help'].map($).filter(vis),bad=[],H=D.documentElement.scrollHeight,y;
+    var top=['portal','help'].map($).filter(vis),bad=[],H=D.documentElement.scrollHeight,y;
     for(y=0;y<H;y+=200){
       W.scrollTo(0,y);
       top.forEach(function(t){
@@ -41,7 +41,7 @@
     var m=await fetch('manifest.json').then(function(r){return r.json()}).catch(function(){return null});
     var icons=m?await Promise.all(m.icons.concat([{src:'apple-touch-icon.png'}]).map(function(x){return fetch(x.src).then(function(r){return r.ok})})):[];
     check('L1 манифест и все значки отдаются',m&&m.name==='Звуколовка'&&icons.length===4&&icons.every(Boolean),JSON.stringify(icons));
-    check('L2 кнопки шапки в потоке страницы, а не поверх неё',['portal','wsnd','help'].every(function(id){return W.getComputedStyle($(id)).position!=='fixed'}),'');
+    check('L2 кнопки шапки в потоке страницы, а не поверх неё',['portal','help'].every(function(id){return W.getComputedStyle($(id)).position!=='fixed'}),'');
     check('L3 обычный экран: кнопки не меньше 44 px',small().length===0,small().join(', '));
     check('L4 обычный экран: ничего не перекрыто',covered().length===0,covered().slice(0,5).join(', '));
     check('L5 обычный экран: нет прокрутки вбок',D.documentElement.scrollWidth<=W.innerWidth,D.documentElement.scrollWidth+' > '+W.innerWidth);
