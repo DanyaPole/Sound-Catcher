@@ -539,6 +539,27 @@ body.world #wNote{display:block}
   <div class="sp-sub">Лови звуки! 🎵</div>
 </div>
 <script>
+/* Если приложение упало при запуске — вместо белого экрана короткое сообщение и выдержка ошибки.
+   Работает, пока основной скрипт не дошёл до конца (window.__zvReady); ошибки позже, при работе, экран не закрывают.
+   Без зависимостей от CSS, в стиле ES5. */
+(function(){
+  var shown=false;
+  window.addEventListener('error',function(e){
+    if(window.__zvReady||shown)return;shown=true;
+    try{
+      var m=String((e&&e.message)||'ошибка'),ln=e&&e.lineno?' (строка '+e.lineno+(e.colno?':'+e.colno:'')+')':'';
+      var d=document.createElement('div');d.id='zvErr';d.setAttribute('role','alert');
+      d.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;overflow:auto;box-sizing:border-box;padding:24px 18px;background:#fff7d6;color:#3b2a6b;font:18px/1.4 system-ui,sans-serif;text-align:center';
+      var h=document.createElement('div');h.style.cssText='font-size:26px;font-weight:700;margin:24px 0 12px';h.textContent='Что-то пошло не так 😕';
+      var t=document.createElement('div');t.textContent='Звуколовка не смогла запуститься. Попробуй открыть сайт в Safari или Chrome (не внутри мессенджера) и обновить страницу. Покажи этот экран взрослому.';
+      var c=document.createElement('pre');c.style.cssText='margin:18px auto 0;max-width:420px;padding:10px;background:#fff;border-radius:12px;font:13px/1.35 monospace;text-align:left;white-space:pre-wrap;word-break:break-word';
+      c.textContent=(m+ln).slice(0,300);
+      d.appendChild(h);d.appendChild(t);d.appendChild(c);(document.body||document.documentElement).appendChild(d);
+    }catch(x){}
+  });
+})();
+</script>
+<script>
 (function(){
   var sp=document.getElementById('splash'),done=false;
   function hide(){
@@ -4177,6 +4198,7 @@ document.addEventListener('visibilitychange',function(){
     stopPlay();silentOff();
   }
 });
+window.__zvReady=true;
 })();
 </script>
 </body>
