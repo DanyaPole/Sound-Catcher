@@ -44,6 +44,42 @@
     var nr=$('nowRow').getBoundingClientRect(),tb=$('tbar').getBoundingClientRect();
     check('Q8 строка «Звучит» прилипает вместе с плеером',nr.top>=0&&nr.top<160&&tb.top>=0&&tb.height<=90,'строка '+Math.round(nr.top)+' px, плеер '+Math.round(tb.height)+' px');
     W.scrollTo(0,0);
+
+    /* ---- шаг 2: ↶ ↷ и сравнение ---- */
+    var C=T.clar;
+    function fxk(){return [].map.call(D.querySelectorAll('#grid .t.sel'),function(t){return t.getAttribute('data-id')}).join(',')}
+    await sleep(700);
+    var h0n=C.his().past;
+    D.querySelector('#grid .t[data-id=echo]').click();await sleep(800);P.stop();
+    D.querySelector('#grid .t[data-id=cave]').click();await sleep(800);P.stop();
+    check('R1 два нажатия — два шага истории, ↶ доступна',C.his().past===h0n+2&&!$('undo').disabled&&$('redo').disabled,JSON.stringify(C.his()));
+    $('undo').click();await sleep(100);P.stop();
+    check('R2 ↶ — снова Эхо',fxk()==='echo'&&!$('redo').disabled,fxk());
+    $('undo').click();await sleep(100);P.stop();
+    check('R3 ↶ ещё раз — без эффектов',fxk()==='orig'&&calm(),fxk());
+    $('redo').click();await sleep(100);P.stop();
+    check('R4 ↷ — снова Эхо',fxk()==='echo',fxk());
+    var mx=$('mix'),before=C.his().past;
+    [90,80,70,60].forEach(function(v){mx.value=v;mx.oninput()});mx.onchange();await sleep(900);P.stop();
+    check('R5 ползунок «сухо–мокро» протянули — это один шаг',C.his().past===before+1&&P.mix()===0.6,(C.his().past-before)+' шаг(а), MIX '+P.mix());
+    $('undo').click();await sleep(100);P.stop();
+    check('R6 ↶ возвращает ползунок',P.mix()===1&&+mx.value===100,'MIX '+P.mix());
+    T.slices.set({n:5,mode:'pre',order:[4,3,2,1,0],rev:[false,false,false,false,false]});await sleep(900);
+    T.notes.tab();
+    D.dispatchEvent(new W.KeyboardEvent('keydown',{key:'z',ctrlKey:true,bubbles:true}));await sleep(100);P.stop();
+    check('R7 Ctrl+Z отменяет и нарезку',!T.slices.state().on,JSON.stringify(T.slices.state().order));
+    /* сравнение */
+    $('ab').click();await sleep(150);
+    var abOn=C.ab(),lbl=D.querySelector('#now .lbl').textContent,dim=$('nowRow').classList.contains('ab'),pl=P.state().on;
+    check('R8 ⇄ — «как было»: кнопка жёлтая, строка бледнеет, звук играет',abOn&&dim&&/как было/.test(lbl)&&pl&&$('ab').getAttribute('aria-pressed')==='true',lbl);
+    var hb=C.his().past;
+    $('ab').click();await sleep(150);P.stop();
+    check('R9 ⇄ ещё раз — с эффектами; сравнение не пишет в историю',!C.ab()&&C.his().past===hb,'');
+    $('ab').click();await sleep(100);D.querySelector('#grid .t[data-id=low]').click();await sleep(400);P.stop();
+    check('R10 нажал эффект во время сравнения — сравнение само выключилось',!C.ab()&&!$('nowRow').classList.contains('ab'),'');
+    T.load([A],sr);await sleep(400);
+    check('R11 новый звук — история чистая',C.his().past===0&&$('undo').disabled,JSON.stringify(C.his()));
+    T.fx([]);T.ui();await sleep(400);
     W.__png=null;
 
     await report({ok:true,results:results,png:W.__png});

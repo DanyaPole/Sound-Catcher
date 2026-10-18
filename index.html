@@ -97,6 +97,8 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .chip b{font-size:12px;opacity:.55}
 .chip.calm{border-color:transparent;background:transparent;cursor:default;opacity:.8}
 .nowr.ab #now{opacity:.45}
+.nowr .ub{min-width:44px;padding:0 2px}
+#ab[aria-pressed=true]{background:#ffd23f;color:var(--ink);box-shadow:0 3px 0 #d9a400}
 #resetAll,.nowr .ub{flex:none;min-width:44px;min-height:44px;border:0;border-radius:22px;background:var(--vio);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--viod)}
 #resetAll small,.nowr .ub small{font-size:10px;font-weight:700}
 #resetAll:disabled,.nowr .ub:disabled{opacity:.35;cursor:default}
@@ -544,6 +546,9 @@ body.world #crvBox{display:flex}
     <button id="surprise" class="rb sm" aria-label="Сюрприз: всё случайно">🎲</button>
   </div>
   <div class="row nowr" id="nowRow">
+    <button class="ub" id="undo" aria-label="Отменить" disabled>↶<small>назад</small></button>
+    <button class="ub" id="redo" aria-label="Вернуть" disabled>↷<small>вперёд</small></button>
+    <button class="ub" id="ab" aria-label="Сравнить: как было или с эффектами" aria-pressed="false">⇄<small>сравни</small></button>
     <div id="now" aria-live="polite" aria-label="Что сейчас звучит"></div>
     <button id="resetAll" aria-label="Сбросить всё: звук как был">↺<small>всё</small></button>
   </div>
@@ -1373,6 +1378,13 @@ function buildPost(c,dest,o){
   var rate=o&&o.semis?Math.pow(2,o.semis/12):1;src.playbackRate.value=rate;src.connect(master);
   return {src:src,master:master,nodes:[master],oscs:[],rate:rate,tail:0.05,taps:[],wg:null,dg:null};
 }
+/* ⇄ «как было»: исходная запись без эффектов, нот, нарезки и чистки (громкость та же — сравнивать честно) */
+function buildRaw(c,dest,o){
+  var master=c.createGain();master.connect(dest);
+  var src=c.createBufferSource();src.buffer=o&&o.rev?revOf(rawBuf):rawBuf;
+  var rate=o&&o.semis?Math.pow(2,o.semis/12):1;src.playbackRate.value=rate;src.connect(master);
+  return {src:src,master:master,nodes:[master],oscs:[],rate:rate,tail:0.05,taps:[],wg:null,dg:null};
+}
 /* вихрю нужны два уха — тогда и сохраняем в стерео */
 function outCh(b){return S('pan')||crvLaneOn('pan')?2:b.numberOfChannels}
 
@@ -1405,7 +1417,7 @@ function play(from){
   if(!buffer)return;
   stopPlay();
   /* нарезка после эффектов: сначала звук обрабатывается и режется целиком (доли секунды), потом играет */
-  if(slAfter()&&!postReady()){
+  if(!AB&&slAfter()&&!postReady()){
     var tk=PEND=Date.now()+Math.random();
     say('✂️ Режу звук…');
     postGet().then(function(){if(PEND===tk)play(from)}).catch(function(){if(PEND===tk){PEND=0;say('Не вышло порезать 😕')}});
@@ -1413,7 +1425,7 @@ function play(from){
   }
   var c=ac();silentOn();
   var an=c.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;
-  var os=outStage(c,c.destination,VOL,TEMP);an.connect(os.i);curOut=os;
+  var os=outStage(c,c.destination,VOL,AB?0:TEMP);an.connect(os.i);curOut=os;
   var S={c:c,live:[],ps:[],k:0,timer:0,mix:[],done:false};SES=S;vizAn=an;
   S.end=function(){
     clearTimeout(S.timer);S.live.slice().forEach(function(f){f()});
@@ -1432,7 +1444,7 @@ function play(from){
   }
   function pass(t0,o){
     o.t0=t0;
-    var g=slAfter()&&PB.b?buildPost(c,an,o):build(c,an,o);
+    var g=AB?buildRaw(c,an,o):(slAfter()&&PB.b?buildPost(c,an,o):build(c,an,o));
     g.oscs.forEach(function(x){x.start(t0)});
     startSrc(g.src,t0,o);
     g.taps.forEach(function(t){startSrc(t.s,t0+t.when,o)});
@@ -3447,7 +3459,7 @@ function nowItems(){
 }
 function nowDraw(){
   var box=$('now'),L=nowItems();box.innerHTML='';
-  var lb=document.createElement('span');lb.className='lbl';lb.textContent='Звучит:';box.appendChild(lb);
+  var lb=document.createElement('span');lb.className='lbl';lb.textContent=AB?'Сейчас: как было. С эффектами:':'Звучит:';box.appendChild(lb);
   if(!L.length){var c=document.createElement('span');c.className='chip calm';c.textContent='👂 как было';box.appendChild(c)}
   L.forEach(function(it){
     var b=document.createElement('button');b.className='chip';b.setAttribute('aria-label','Выключить: '+it[0]);
@@ -3463,9 +3475,84 @@ function resetAll(){
   say('↺ Всё как было: без эффектов и настроек');nowTick();if(buffer)play();
 }
 $('resetAll').onclick=function(){vib([8,20,8]);bounce($('resetAll'));resetAll()};
+/* ---------- ↶ ↷ отмена и повтор любых изменений звука; ⇄ сравнить «как было» и «с эффектами» ----------
+   Шаг истории — снимок всех настроек звука. Изменение попадает в историю, когда полсекунды не меняется
+   (ползунок тянут — это один шаг) и палец не рисует */
+var HIS={past:[],fut:[],cur:null,sig:'',g:-1,pend:'',pt:0,max:50},AB=false,abSig='';
+function sndSnap(){
+  var cv=artistCanvas(),prev=HIS.cur&&HIS.cur.ar.ver===cv.ver?HIS.cur.ar:null;
+  return {active:active.map(function(a){return {id:a.id,lvl:a.lvl}}),lastId:lastId,multi:multi,MIX:MIX,VOL:VOL,TEMP:TEMP,clean:cleanOn,
+    edits:JSON.parse(JSON.stringify(NE.g===gen?NE.edits:{})),
+    sl:{n:SL.n,order:SL.order?SL.order.slice():null,rev:SL.rev?SL.rev.slice():null,mode:SL.mode,on:slOn()},
+    crv:LANES.map(function(l){return CV.d[l.id].slice()}),
+    ar:prev||{ver:cv.ver,d:cv.d.slice(),p:cv.p.slice(),want:AR.want,seed:AR.seed,influence:AR.influence,blur:AR.blur}};
+}
+function sndRestore(s){
+  active=s.active.map(function(a){return {id:a.id,lvl:a.lvl}});lastId=s.lastId;setMulti(s.multi);
+  MIX=s.MIX;mixUI();VOL=s.VOL;volUI();TEMP=s.TEMP;tempEl.value=Math.round(TEMP*100);tempUI();
+  if(curOut){try{var t=curOut.vg.context.currentTime;curOut.vg.gain.setTargetAtTime(VOL,t,0.02);setTone(curOut.ls,curOut.hs,TEMP,t)}catch(e){}}
+  cleanSet(s.clean,true);
+  if(Object.keys(s.edits).length){noteRuns();NE.edits=JSON.parse(JSON.stringify(s.edits))}else if(NE.g===gen)NE.edits={};
+  noteChanged();
+  SL.g=gen;SL.c=cleanOn?1:0;SL.n=s.sl.n;SL.mode=s.sl.mode;
+  if(s.sl.on){SL.order=s.sl.order.slice();SL.rev=s.sl.rev.slice()}else slIdent();
+  slChanged();
+  LANES.forEach(function(l,i){CV.d[l.id].set(s.crv[i])});crvChanged(false);
+  var cv=artistCanvas(),a=s.ar;
+  if(cv.ver!==a.ver){cv.d.set(a.d);cv.p.set(a.p);cv.ver++;a.ver=cv.ver}
+  AR.want=a.want;AR.seed=a.seed;AR.influence=a.influence;AR.blur=a.blur;AR.planKey='';
+  ecSync();if(EC.ready){ecPaintDraw();ecSave()}
+  refreshTiles();
+}
+function hisBusy(){return !!(EC.down||CV.down||NE.drag||SL.drag||WVG)}
+function hisUI(){$('undo').disabled=!HIS.past.length;$('redo').disabled=!HIS.fut.length}
+/* записать изменение в историю (если оно есть) */
+function hisCommit(){
+  var s=sndSig();
+  if(s===HIS.sig)return;
+  if(HIS.cur){HIS.past.push(HIS.cur);if(HIS.past.length>HIS.max)HIS.past.shift()}
+  HIS.cur=sndSnap();HIS.sig=s;HIS.fut=[];HIS.pend='';hisUI();
+}
+function hisStep(back){
+  if(!buffer)return;
+  hisCommit();
+  var from=back?HIS.past:HIS.fut,to=back?HIS.fut:HIS.past;
+  if(!from.length){shake($(back?'undo':'redo'));return}
+  to.push(HIS.cur);HIS.cur=from.pop();
+  sndRestore(HIS.cur);HIS.sig=sndSig();HIS.pend='';
+  if(AB)abSet(false,true);
+  hisUI();nowTick();
+  say(back?'↶ Отменил: звук как шаг назад':'↷ Вернул');play();
+}
+$('undo').onclick=function(){vib(8);hisStep(true)};
+$('redo').onclick=function(){vib(8);hisStep(false)};
+document.addEventListener('keydown',function(e){
+  if(!(e.ctrlKey||e.metaKey)||(e.key!=='z'&&e.key!=='Z'&&e.key!=='я'&&e.key!=='Я'))return;
+  var t=e.target;if(t&&(t.tagName==='INPUT'&&t.type!=='range'||t.isContentEditable))return;
+  if(!buffer||!fx.classList.contains('show'))return;
+  e.preventDefault();hisStep(!e.shiftKey);
+});
+/* ⇄ сравнение: «как было» — исходная запись без всякой обработки, с того же места; любое изменение возвращает «с эффектами» */
+function abSet(on,quiet){
+  AB=on;abSig=sndSig();
+  var b=$('ab');b.setAttribute('aria-pressed',on?'true':'false');b.innerHTML=on?'👂<small>как было</small>':'⇄<small>сравни</small>';
+  $('nowRow').classList.toggle('ab',on);nowDraw();
+  if(!quiet){
+    say(on?'👂 Сейчас звучит как было — без эффектов. Нажми ещё раз — с эффектами':'✨ Снова с эффектами');
+    if(buffer)play(SES&&playFrac>=0?Math.max(0,Math.min(0.98,playFrac)):undefined);
+  }
+}
+$('ab').onclick=function(){if(!buffer)return;vib(8);abSet(!AB)};
 function nowTick(){
   if(!buffer)return;
-  var s=sndSig();if(s===NOW.sig)return;
+  var s=sndSig(),now=performance.now();
+  if(HIS.g!==gen){HIS.g=gen;HIS.past=[];HIS.fut=[];HIS.cur=sndSnap();HIS.sig=s;HIS.pend='';hisUI();if(AB)abSet(false,true)}
+  if(AB&&s!==abSig)abSet(false,true);
+  if(s!==HIS.sig&&!hisBusy()){
+    if(HIS.pend!==s){HIS.pend=s;HIS.pt=now}
+    else if(now-HIS.pt>=450)hisCommit();
+  }
+  if(s===NOW.sig)return;
   NOW.sig=s;nowDraw();
 }
 setInterval(nowTick,250);
@@ -3736,6 +3823,7 @@ if(location.hash.indexOf('#sa-test')===0){
       state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
         ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
         live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}},
+    clar:{ab:function(){return AB},his:function(){return {past:HIS.past.length,fut:HIS.fut.length}},tick:nowTick,commit:hisCommit},
     curves:{init:crvInit,lane:crvLane,all:crvAll,on:crvOn,key:crvKey,factor:crvFactor,strokes:function(){return CV.strokes},
       set:function(id,f){var d=CV.d[id],i;for(i=0;i<CRN;i++)d[i]=typeof f==='function'?f(i/(CRN-1)):(f==null?LANE[id].neu:f);crvChanged(false)},
       get:function(id){return Array.prototype.slice.call(CV.d[id])},
