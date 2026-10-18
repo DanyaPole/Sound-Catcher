@@ -12,6 +12,8 @@
     var r=$('ecTop').getBoundingClientRect();
     $('ecTop').dispatchEvent(new PointerEvent(type,{clientX:r.left+x*r.width,clientY:r.top+y*r.height,bubbles:true,pointerId:7,pointerType:'touch',isPrimary:true}));
   }
+  function cpe(type,x,y){var r=$('crv').getBoundingClientRect();$('crv').dispatchEvent(new PointerEvent(type,{clientX:r.left+x*r.width,clientY:r.top+y*r.height,bubbles:true,pointerId:8,pointerType:'touch',isPrimary:true}))}
+  function cstroke(){cpe('pointerdown',0.05,0.5);for(var i=1;i<=10;i++)cpe('pointermove',0.05+0.9*i/10,0.5-0.4*Math.sin(Math.PI*i/10));cpe('pointerup',0.95,0.5)}
   function stroke(x0,y0,x1,y1,n){pe('pointerdown',x0,y0);for(var i=1;i<=n;i++)pe('pointermove',x0+(x1-x0)*i/n,y0+(y1-y0)*i/n);pe('pointerup',x1,y1)}
   function rect(el){var r=el.getBoundingClientRect();return {l:r.left,t:r.top,r:r.right,b:r.bottom,w:r.width,h:r.height}}
   function overlap(a,b){return Math.max(0,Math.min(a.r,b.r)-Math.max(a.l,b.l))*Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t))}
@@ -79,6 +81,9 @@
     await geo('малыш, шаг 5 (нарисуй эхо)');
     stroke(0.3,0.5,0.7,0.45,14);
     check('K5 нарисовал точки: эхо включилось само и слышно',await until(function(){return T.tour.state().i===5&&T.ec.on()},4000),'эхо вкл: '+T.ec.on());
+    await geo('малыш, шаг 6 (проведи линию)');
+    cstroke();
+    check('K5b провёл линию высоты — шаг пройден, дорожка звучит',await until(function(){return T.tour.state().i===6&&T.curves.on()},4000),T.curves.key());
     await geo('малыш, награда');
     check('K6 награда: «Ты художник звука!»',/художник звука/.test(T.tour.state().text),T.tour.state().text);
     q('.tr-act button').click();
@@ -108,6 +113,9 @@
     check('A5 «Показать как» выбрало перо и голубую краску',q('#ecTools [data-tool=pen]').classList.contains('on')&&q('#ecPal [data-paint=blue]').classList.contains('on'),'');
     stroke(0.4,0.5,0.4,0.5,1);
     check('A6 голубое перо на холсте — шаг 5',await until(function(){return T.tour.state().i===4},4000),'');
+    await geo('взрослый, шаг 5 (дорожки времени)');
+    q('.tr-act button').click();
+    check('A6b «Показать как» нарисовало ступеньки высоты — шаг 6',await until(function(){return T.tour.state().i===5},4000),T.curves.key());
     await geo('взрослый, итог');
     q('.tr-act button').click();await sleep(200);
     check('A7 «Готово»: закрыто и запомнено',T.tour.state().on===''&&T.tour.saved().adult===1,JSON.stringify(T.tour.saved()));

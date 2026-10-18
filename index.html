@@ -314,6 +314,18 @@ body.world .ends{opacity:.7}
 /* ---- холст эха ---- */
 #echoBox{display:none;flex-direction:column;align-items:center;gap:10px;width:min(100%,360px)}
 body.world #echoBox{display:flex}
+/* дорожки времени: громкость, высота, ухо, яркость, волшебство */
+#crvBox{display:none;flex-direction:column;align-items:center;gap:10px;width:min(100%,360px)}
+body.world #crvBox{display:flex}
+.crvk{width:100%;box-sizing:border-box}
+.crl{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.crl button{position:relative;min-height:48px;border:2px solid rgba(255,255,255,.25);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;font-size:19px;line-height:1.1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 0}
+.crl button small{font-size:10px;font-weight:700}
+.crl button.on{background:var(--lc);color:#1a1033;border-color:#fff}
+.crl button.has::after{content:'';position:absolute;top:4px;right:5px;width:8px;height:8px;border-radius:50%;background:var(--lc);box-shadow:0 0 0 2px #0a0720}
+.crl button.on.has::after{background:#1a1033;box-shadow:none}
+#crv{display:block;width:100%;height:150px;margin-top:8px;border-radius:14px;background:rgba(255,255,255,.06);touch-action:none;cursor:crosshair}
+.crs .nb{font-size:18px}
 #ecWrap{position:relative;width:100%;aspect-ratio:1.6;border-radius:18px;overflow:hidden;background:#0b0a22;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 10px 28px rgba(0,0,0,.35);transition:opacity .25s}
 #echoBox.off #ecWrap{opacity:.7}
 #ecWrap canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -544,6 +556,16 @@ body.world #echoBox{display:flex}
       <div class="knob"><div class="kt"><span>🎯 Сила холста</span><b id="ecInflTxt">100%</b></div><div class="kr"><span>🌫️</span><input class="rng" id="ecInfl" type="range" min="0" max="100" value="100" aria-label="Сила холста"><span>🎨</span></div></div>
       <div class="knob"><div class="kt"><span>💧 Размытие</span><b id="ecBlurTxt">0%</b></div><div class="kr"><span>🔹</span><input class="rng" id="ecBlur" type="range" min="0" max="100" value="0" aria-label="Размытие"><span>🌫️</span></div></div>
     </details>
+  </div>
+  <div id="crvBox">
+    <div class="sec">〰️ Рисую звук во времени</div>
+    <div class="knob crvk">
+      <div class="crl" id="crvLanes" role="tablist" aria-label="Что рисовать"></div>
+      <canvas id="crv" aria-label="Проведи линию слева направо: так звук будет меняться во времени"></canvas>
+      <div class="ntools crs" id="crvShapes"></div>
+      <div class="cap" id="crvCap">👆 Проведи линию слева направо — так звук будет меняться</div>
+    </div>
+    <button id="crvAll" class="pill dice" aria-label="Всё случайно во времени">🎲 Всё случайно во времени</button>
   </div>
   <div class="sec">🎚️ Настрой звук</div>
   <div class="tools">
@@ -1035,7 +1057,7 @@ function drawWave(p){
   }
   g.globalAlpha=1;
   if(SES&&p>=0){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(10+p*(w-20)-1.5,2,3,h-4)}
-  slDraw();
+  slDraw();crvDraw();
 }
 window.addEventListener('resize',function(){if(buffer)drawWave(playFrac);drawViz()});
 
@@ -1047,7 +1069,7 @@ function tailOf(){
   var t=0.3,s;if((s=S('echo')))t+=1+2.5*s;if((s=S('cave')))t+=caveLen(s);if(S('warp'))t+=0.4;if(S('chorus'))t+=0.1;if(AR.on)t+=artistExtra();
   if(S('flange'))t+=0.1;if(S('tape'))t+=0.1;if((s=S('space')))t+=spaceLen(s);
   /* «сухо — мокро»: исходная запись может оказаться длиннее обработанной (Мышка) */
-  if(MIX<1)t=Math.max(t,buffer.duration-srcBuf().duration/rateOf());
+  if(MIX<1||crvLaneOn('wet'))t=Math.max(t,buffer.duration-srcBuf().duration/rateOf());
   return t;
 }
 /* на сколько дольше оригинала звучит самое позднее эхо художника */
@@ -1206,6 +1228,8 @@ function build(c,dest,o){
   var master=gain(1);master.connect(dest);
   var src=c.createBufferSource();src.buffer=o&&o.rev?revOf(srcBuf()):srcBuf();
   var rate=rateOf();if(o&&o.semis)rate*=Math.pow(2,o.semis/12);src.playbackRate.value=rate;
+  var P=crvPlan(o,src.buffer.duration*(o?o.b-o.a:1)/rate);
+  crvRate(src.playbackRate,rate,P,P?P.t0:0);
   var vibs=[];
   function vibr(f,d){var l=osc('sine',f),a=gain(d*rate);l.connect(a);a.connect(src.playbackRate);vibs.push(a)}
   if((s=S('warp')))vibr(2.5,0.35*s);
@@ -1221,6 +1245,7 @@ function build(c,dest,o){
     ap.forEach(function(e){
       var ts=c.createBufferSource();ts.buffer=src.buffer;
       ts.playbackRate.value=rate*Math.pow(2,e.semis/12);
+      crvRate(ts.playbackRate,rate*Math.pow(2,e.semis/12),P,P?P.t0+e.t:0);
       vibs.forEach(function(v){v.connect(ts.playbackRate)});
       var last=ts;
       if(Math.abs(e.bright)>0.04){var sh=filt('highshelf',3000);sh.gain.value=e.bright*ARTIST.brightDb;last.connect(sh);last=sh}
@@ -1285,7 +1310,7 @@ function build(c,dest,o){
   /* космос: звук октавой выше уходит в долгое эхо вместе с обычным */
   if((s=S('space'))){
     var sIn=cur,sOut=gain(1),cvS=node(c.createConvolver());cvS.buffer=makeIR(c,spaceLen(s));
-    var ss=c.createBufferSource();ss.buffer=o&&o.rev?revOf(octBuf(srcBuf())):octBuf(srcBuf());ss.playbackRate.value=rate;
+    var ss=c.createBufferSource();ss.buffer=o&&o.rev?revOf(octBuf(srcBuf())):octBuf(srcBuf());ss.playbackRate.value=rate;crvRate(ss.playbackRate,rate,P,P?P.t0:0);
     vibs.forEach(function(v){v.connect(ss.playbackRate)});
     var sg=gain(0.5*s),ig=gain(0.35),wv=gain(0.45+0.45*s),hp=filt('highpass',400);
     ss.connect(hp);hp.connect(sg);sg.connect(cvS);sIn.connect(ig);ig.connect(cvS);cvS.connect(wv);wv.connect(sOut);sIn.connect(sOut);
@@ -1297,14 +1322,21 @@ function build(c,dest,o){
     lp.connect(pa);pa.connect(pz.pan);seq(pz);
   }
   /* сухо — мокро: обработанный звук тише, рядом звучит исходная запись без эффектов */
-  var wg=null,dg=null;
-  if(MIX<1){
-    wg=gain(MIX);cur.connect(wg);wg.connect(master);
+  /* дорожки времени (мир): громкость, яркость и ухо — в самом конце, поверх всего; волшебство — доля эффекта */
+  var wg=null,dg=null,outN=P?crvOut(c,master,P,node):master;
+  if(MIX<1||P&&P.wet){
+    wg=gain(MIX);cur.connect(wg);wg.connect(outN);
     var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(cutBuf()):cutBuf();
-    if(o&&o.semis)ds.playbackRate.value=Math.pow(2,o.semis/12);
-    dg=gain(1-MIX);ds.connect(dg);dg.connect(master);taps.push({s:ds,when:0});
-  }else cur.connect(master);
-  return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate,tail:tailOf(),taps:taps,wg:wg,dg:dg};
+    var dr=o&&o.semis?Math.pow(2,o.semis/12):1;if(dr!==1)ds.playbackRate.value=dr;
+    crvRate(ds.playbackRate,dr,P,P?P.t0:0);
+    dg=gain(1-MIX);ds.connect(dg);dg.connect(outN);taps.push({s:ds,when:0});
+    if(P&&P.wet){
+      var wa=new Float32Array(P.wet.length),da=new Float32Array(P.wet.length),k2;
+      for(k2=0;k2<wa.length;k2++){wa[k2]=MIX*P.wet[k2];da[k2]=1-wa[k2]}
+      wg.gain.setValueCurveAtTime(wa,P.t0,P.T);dg.gain.setValueCurveAtTime(da,P.t0,P.T);
+    }
+  }else cur.connect(outN);
+  return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate,tail:tailOf(),taps:taps,wg:wg,dg:dg,pf:P?P.pf:1,wetC:!!(P&&P.wet)};
 }
 /* нарезка после эффектов: играет уже готовый, обработанный и порезанный звук */
 function buildPost(c,dest,o){
@@ -1314,7 +1346,7 @@ function buildPost(c,dest,o){
   return {src:src,master:master,nodes:[master],oscs:[],rate:rate,tail:0.05,taps:[],wg:null,dg:null};
 }
 /* вихрю нужны два уха — тогда и сохраняем в стерео */
-function outCh(b){return S('pan')?2:b.numberOfChannels}
+function outCh(b){return S('pan')||crvLaneOn('pan')?2:b.numberOfChannels}
 
 /* ---------- воспроизведение ---------- */
 function setPlayUI(on){
@@ -1371,12 +1403,14 @@ function play(from){
     return o;
   }
   function pass(t0,o){
+    o.t0=t0;
     var g=slAfter()&&PB.b?buildPost(c,an,o):build(c,an,o);
     g.oscs.forEach(function(x){x.start(t0)});
     startSrc(g.src,t0,o);
     g.taps.forEach(function(t){startSrc(t.s,t0+t.when,o)});
-    var dur=g.src.buffer.duration*(o.b-o.a)/g.rate,dead=false;
-    if(g.wg)S.mix.push(g);
+    /* нарисованная высота ускоряет или замедляет звук — проход длится столько, сколько он реально звучит */
+    var dur=g.src.buffer.duration*(o.b-o.a)/g.rate*(g.pf||1),dead=false;
+    if(g.wg&&!g.wetC)S.mix.push(g);
     function kill(){
       if(dead)return;dead=true;
       var i=S.live.indexOf(stop);if(i>=0)S.live.splice(i,1);
@@ -1489,9 +1523,9 @@ var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
 if(!OC)shareBtn.style.display='none';
 function artistKey(){return AR.on?(':a'+artistCanvas().ver+'.'+artistSeed()+'.'+AR.influence+'.'+AR.blur):''}
 function mixKey(){return MIX<1?':m'+MIX.toFixed(2):''}
-function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post')}
+function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post')+crvKey()}
 /* звук целиком без громкости и температуры — для нарезки после эффектов */
-function postRawKey(){return gen+':'+fxKey()+':'+(cleanOn?1:0)+artistKey()+mixKey()+noteKey()}
+function postRawKey(){return gen+':'+fxKey()+':'+(cleanOn?1:0)+artistKey()+mixKey()+noteKey()+crvKey()}
 function postKey(){return postRawKey()+slKey('post')}
 function offline(ch,len,sr,vol,make){
   return new Promise(function(res,rej){
@@ -1511,7 +1545,7 @@ function renderWav(vol){
     return offline(pb.numberOfChannels,pb.length+Math.ceil(0.05*pb.sampleRate),pb.sampleRate,vol,buildPost);
   });
   var b=srcBuf(),sr=b.sampleRate;
-  return offline(outCh(b),Math.ceil((b.duration/rateOf()+tailOf())*sr),sr,vol,function(c,d){return build(c,d)});
+  return offline(outCh(b),Math.ceil((b.duration/rateOf()*crvFactor()+tailOf())*sr),sr,vol,function(c,d){return build(c,d)});
 }
 /* нарезка после эффектов: звук со всеми эффектами и хвостами, порезанный и перемешанный */
 var PB={k:'',b:null,p:null,r:null,rk:''};
@@ -1528,7 +1562,7 @@ function postGet(){
   if(PB.k===k&&PB.p)return PB.p;
   var b=srcBuf(),sr=b.sampleRate;
   PB={k:k,b:null,p:null,r:null,rk:''};
-  PB.p=offline(outCh(b),Math.ceil((b.duration/rateOf()+tailOf())*sr),sr,null,function(c,d){return build(c,d)}).then(function(rb){
+  PB.p=offline(outCh(b),Math.ceil((b.duration/rateOf()*crvFactor()+tailOf())*sr),sr,null,function(c,d){return build(c,d)}).then(function(rb){
     var cb=sliceBuf(rb);if(PB.k===k){PB.b=cb;PB.r=rb;PB.rk=rk;slDraw()}return cb;
   });
   return PB.p;
@@ -1816,7 +1850,7 @@ function keyOfRuns(list){
 }
 function needView(){
   if(!buffer||!OC||!vizOn.pic)return;
-  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post');
+  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post')+crvKey();
   if(view&&view.k===k){drawViz();return}
   if(viewBusy===k)return;
   viewBusy=k;
@@ -2930,7 +2964,247 @@ function ecSync(){
     ecInit();
     if(ecSize()){ecPaintDraw();ecEntropy()}
     ecWake();
+    crvInit();crvUI();
   }
+}
+
+/* ---------- 〰️ Рисую звук во времени (мир): дорожки громкости, высоты, уха, яркости и волшебства ----------
+   X — время звука слева направо, Y — значение. Ровная линия посередине (у волшебства — наверху) = как было.
+   Звучит только в мире, как и холст эха; что видишь на дорожке, то и слышишь */
+var CRVK='zv-curves',CRN=96;
+var LANES=[
+  {id:'vol',e:'🔊',n:'громко',col:'#ffd23f',neu:0.5,top:'громче ↑',bot:'тише ↓'},
+  {id:'pitch',e:'🎵',n:'высота',col:'#ff6fae',neu:0.5,top:'выше ↑ (+12)',bot:'ниже ↓ (−12)'},
+  {id:'pan',e:'👂',n:'ухо',col:'#3aa8ff',neu:0.5,top:'правое ухо ↑',bot:'левое ухо ↓'},
+  {id:'bright',e:'✨',n:'яркость',col:'#fff3d6',neu:0.5,top:'звонче ↑',bot:'глуше ↓'},
+  {id:'wet',e:'🪄',n:'волшебство',col:'#b69cff',neu:1,top:'всё волшебство ↑',bot:'как было ↓'}
+];
+var LANE={};LANES.forEach(function(l){LANE[l.id]=l});
+var CRSHAPES=[['rise','📈','растёт'],['fall','📉','затихает'],['wave','🌊','волны'],['hill','⛰️','горка'],['steps','🪜','ступеньки'],['pulse','💓','пульс']];
+var CV={lane:'pitch',d:{},ver:0,strokes:0,down:false,li:-1,lv:0,prevT:0,ready:false,hx:-1,hv:0,saveT:0};
+LANES.forEach(function(l){CV.d[l.id]=new Float32Array(CRN).fill(l.neu)});
+function crvLaneOn(id){
+  if(!CV||!W.on)return false;
+  var d=CV.d[id],n=LANE[id].neu,i;
+  for(i=0;i<CRN;i++)if(Math.abs(d[i]-n)>0.01)return true;
+  return false;
+}
+function crvOn(){if(!CV||!W.on)return false;for(var i=0;i<LANES.length;i++)if(crvLaneOn(LANES[i].id))return true;return false}
+function crvKey(){return crvOn()?':c'+CV.ver+LANES.map(function(l){return crvLaneOn(l.id)?l.id[0]:''}).join(''):''}
+/* значение дорожки → настоящая величина звука */
+var CRMAP={
+  vol:function(v){return v<=0.5?2*v:1+(v-0.5)*0.8},
+  pitch:function(v){return Math.pow(2,(v-0.5)*2)},
+  pan:function(v){return (v-0.5)*2},
+  bright:function(v){return (v-0.5)*30},
+  wet:function(v){return v}
+};
+function crvAt(id,x){var d=CV.d[id],f=Math.max(0,Math.min(1,x))*(CRN-1),j=Math.floor(f),j2=Math.min(CRN-1,j+1);return d[j]+(d[j2]-d[j])*(f-j)}
+/* план прохода: кривые по кусочку a…b (задом наперёд — с конца), растянутые на настоящую длину звучания */
+function crvPlan(o,nom){
+  if(!crvOn())return null;
+  var a=o?o.a:0,b=o?o.b:1,rev=!!(o&&o.rev),M=128,P={t0:o&&o.t0||0},i;
+  LANES.forEach(function(l){
+    if(!crvLaneOn(l.id)){P[l.id]=null;return}
+    var out=new Float32Array(M);
+    for(i=0;i<M;i++){var q=i/(M-1);out[i]=CRMAP[l.id](crvAt(l.id,a+(b-a)*(rev?1-q:q)))}
+    P[l.id]=out;
+  });
+  /* выше — звук быстрее кончается: длительность = обычная / средняя скорость */
+  var m=1;if(P.pitch){m=0;for(i=0;i<M;i++)m+=P.pitch[i];m/=M}
+  P.pf=1/m;P.T=Math.max(0.01,nom*P.pf);
+  return P;
+}
+function crvFactor(){var P=crvPlan(null,1);return P?P.pf:1}
+function crvRate(param,base,P,t0){
+  if(!P||!P.pitch)return;
+  var a=new Float32Array(P.pitch.length),i;for(i=0;i<a.length;i++)a[i]=base*P.pitch[i];
+  param.setValueCurveAtTime(a,t0,P.T);
+}
+/* выход: громкость → яркость → ухо → master */
+function crvOut(c,dest,P,node){
+  var inp=dest;
+  if(P.pan&&c.createStereoPanner){var pz=node(c.createStereoPanner());pz.connect(inp);pz.pan.setValueCurveAtTime(P.pan,P.t0,P.T);inp=pz}
+  if(P.bright){var sh=node(c.createBiquadFilter());sh.type='highshelf';sh.frequency.value=2500;sh.connect(inp);sh.gain.setValueCurveAtTime(P.bright,P.t0,P.T);inp=sh}
+  if(P.vol){var vg=node(c.createGain());vg.connect(inp);vg.gain.setValueCurveAtTime(P.vol,P.t0,P.T);inp=vg}
+  return inp;
+}
+/* готовые формы; у высоты ступеньки — аккорд (0, +4, +7, +12), пульс — квинта */
+function crvShape(id,name,x){
+  var p=id==='pitch';
+  if(name==='rise')return p?0.5+0.5*x:0.05+0.9*x;
+  if(name==='fall')return p?0.5-0.5*x:0.95-0.9*x;
+  if(name==='wave')return 0.5+(p?0.2:0.42)*Math.sin(2*Math.PI*3*x);
+  if(name==='hill')return p?0.5+0.5*Math.sin(Math.PI*x):0.05+0.9*Math.sin(Math.PI*x);
+  if(name==='steps'){var k=Math.min(3,Math.floor(x*4));return p?0.5+[0,4,7,12][k]/24:[0.2,0.45,0.7,0.95][k]}
+  if(name==='pulse'){var on=Math.floor(x*8)%2===0;return p?(on?0.5:0.5+7/24):(on?0.9:0.2)}
+  return LANE[id].neu;
+}
+/* 🎲 дорожка: высота — мелодия из ступеней пентатоники, остальное — плавные холмы и волны */
+function crvRandom(id,r){
+  var d=CV.d[id],i;
+  if(id==='pitch'){
+    var seg=3+Math.floor(r()*6),SC=[-5,-3,0,0,2,4,7,9,12],vals=[];for(i=0;i<seg;i++)vals.push(SC[Math.floor(r()*SC.length)]);
+    for(i=0;i<CRN;i++)d[i]=0.5+vals[Math.min(seg-1,Math.floor(i/CRN*seg))]/24;
+    return;
+  }
+  var w=[0,1,2].map(function(){return {f:0.5+r()*3.5,p:r()*6.283,a:0.3+r()*0.7}}),lo=1e9,hi=-1e9,raw=[];
+  for(i=0;i<CRN;i++){var x=i/(CRN-1),v=0;w.forEach(function(q){v+=q.a*Math.sin(2*Math.PI*q.f*x+q.p)});raw.push(v);if(v<lo)lo=v;if(v>hi)hi=v}
+  var bot=id==='wet'?0.15:0.1;
+  for(i=0;i<CRN;i++)d[i]=bot+(0.9-bot)*(raw[i]-lo)/Math.max(1e-6,hi-lo);
+}
+function crvSave(){
+  clearTimeout(CV.saveT);
+  CV.saveT=setTimeout(function(){
+    try{var o={v:1,lane:CV.lane};LANES.forEach(function(l){o[l.id]=Array.prototype.map.call(CV.d[l.id],function(v){return Math.round(v*1000)/1000})});localStorage.setItem(CRVK,JSON.stringify(o))}catch(e){}
+  },500);
+}
+function crvLoad(){
+  try{
+    var o=JSON.parse(localStorage.getItem(CRVK)||'null');if(!o||o.v!==1)return;
+    LANES.forEach(function(l){var a=o[l.id];if(a&&a.length===CRN)CV.d[l.id].set(a)});
+    if(LANE[o.lane])CV.lane=o.lane;CV.ver++;
+  }catch(e){}
+}
+/* кривая изменилась: новый звук, перерисовать, сохранить; звук перезапускается с начала (или кусочка) */
+function crvChanged(replay){
+  CV.ver++;cache={key:'',blob:null};view=null;needView();crvUI();crvSave();
+  if(replay!==false&&buffer&&state==='idle')play();
+}
+function crvUI(){
+  [].forEach.call($('crvLanes').children,function(b){
+    var id=b.getAttribute('data-lane');b.classList.toggle('on',id===CV.lane);b.classList.toggle('has',crvLaneOn(id));
+    b.setAttribute('aria-selected',id===CV.lane?'true':'false');
+  });
+  crvDraw();
+}
+var crvCv=$('crv');
+function crvDraw(){
+  if(!CV||!CV.ready||!W.on)return;
+  var f=fit(crvCv);if(!f)return;
+  var g=f.g,w=f.w,h=f.h,pad=10,H=h-2*pad,i,L=LANE[CV.lane];
+  function Y(v){return pad+(1-v)*H}
+  /* фон: волна записи — чтобы было видно, где в звуке слова */
+  if(peaks.length){
+    g.fillStyle='rgba(255,255,255,.1)';
+    var n=peaks.length,bw=w/n;
+    for(i=0;i<n;i++){var bh=Math.max(2,peaks[i]*H*0.8);g.fillRect(i*bw+bw*0.2,h/2-bh/2,bw*0.6,bh)}
+  }
+  g.setLineDash([5,5]);g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1;g.beginPath();g.moveTo(0,Y(L.neu));g.lineTo(w,Y(L.neu));g.stroke();g.setLineDash([]);
+  /* другие дорожки — бледно, своими цветами */
+  LANES.forEach(function(l){
+    if(l.id===CV.lane||!crvLaneOn(l.id))return;
+    g.strokeStyle=l.col;g.globalAlpha=0.3;g.lineWidth=2;g.beginPath();
+    for(i=0;i<CRN;i++){var x=i/(CRN-1)*w,y=Y(CV.d[l.id][i]);if(i)g.lineTo(x,y);else g.moveTo(x,y)}
+    g.stroke();g.globalAlpha=1;
+  });
+  /* текущая дорожка: заливка до «как было» и яркая линия */
+  var d=CV.d[CV.lane];
+  g.beginPath();g.moveTo(0,Y(L.neu));
+  for(i=0;i<CRN;i++)g.lineTo(i/(CRN-1)*w,Y(d[i]));
+  g.lineTo(w,Y(L.neu));g.closePath();g.fillStyle=L.col;g.globalAlpha=0.18;g.fill();g.globalAlpha=1;
+  g.strokeStyle=L.col;g.lineWidth=3.5;g.lineJoin='round';g.beginPath();
+  for(i=0;i<CRN;i++){var x2=i/(CRN-1)*w,y2=Y(d[i]);if(i)g.lineTo(x2,y2);else g.moveTo(x2,y2)}
+  g.stroke();
+  g.font='700 11px sans-serif';g.fillStyle='rgba(255,255,255,.8)';g.textAlign='left';
+  g.fillText(L.e+' '+L.top,6,pad+10);g.fillText(L.bot,6,h-6);
+  /* развёртка и точка: что дорожка делает со звуком прямо сейчас */
+  if(SES&&playFrac>=0){
+    var px=playFrac*w,pv=crvAt(CV.lane,playFrac);
+    g.fillStyle='rgba(255,255,255,.75)';g.fillRect(px-1,0,2,h);
+    g.beginPath();g.arc(px,Y(pv),7,0,6.283);g.fillStyle=L.col;g.fill();g.lineWidth=2;g.strokeStyle='#fff';g.stroke();
+  }
+  if(CV.hx>=0){g.textAlign='right';g.fillStyle='#fff';g.fillText(crvSay(CV.lane,CV.hv),w-6,pad+10)}
+}
+/* подпись значения под пальцем: числа для взрослых, понятно для детей */
+function crvSay(id,v){
+  if(id==='vol'){var gv=CRMAP.vol(v);return gv<0.05?'тишина':'громкость ×'+gv.toFixed(1)}
+  if(id==='pitch'){var s=Math.round((v-0.5)*24);return s===0?'как было':(s>0?'+':'−')+Math.abs(s)+' полутонов'}
+  if(id==='pan'){var p=CRMAP.pan(v);return Math.abs(p)<0.15?'центр':(p<0?'левое ухо ':'правое ухо ')+Math.round(Math.abs(p)*100)+'%'}
+  if(id==='bright'){var db=Math.round(CRMAP.bright(v));return db===0?'как было':(db>0?'звонче +':'глуше −')+Math.abs(db)+' дБ'}
+  return 'волшебства '+Math.round(v*100)+'%';
+}
+/* касание: короткий кусочек записи из этого места — уже с громкостью, высотой, ухом и яркостью из дорожки */
+function crvPreview(x){
+  var now=performance.now();if(now-CV.prevT<90||!buffer)return;CV.prevT=now;
+  try{
+    var c=ac(),t=c.currentTime,src=c.createBufferSource(),gn=c.createGain(),last=gn,sh=c.createBiquadFilter();
+    src.buffer=buffer;src.playbackRate.value=crvLaneOn('pitch')||CV.lane==='pitch'?CRMAP.pitch(crvAt('pitch',x)):1;
+    sh.type='highshelf';sh.frequency.value=2500;sh.gain.value=CRMAP.bright(crvAt('bright',x));
+    var lv=0.55*CRMAP.vol(crvAt('vol',x));
+    gn.gain.setValueAtTime(0,t);gn.gain.linearRampToValueAtTime(lv,t+0.015);gn.gain.linearRampToValueAtTime(0,t+0.16);
+    src.connect(sh);sh.connect(gn);
+    if(c.createStereoPanner){var pn=c.createStereoPanner();pn.pan.value=CRMAP.pan(crvAt('pan',x));gn.connect(pn);last=pn}
+    last.connect(c.destination);
+    src.start(t,Math.min(buffer.duration-0.05,x*buffer.duration),0.18);
+    src.onended=function(){try{src.disconnect();sh.disconnect();gn.disconnect();last.disconnect()}catch(e){}};
+  }catch(e){}
+}
+function crvPos(e){var r=crvCv.getBoundingClientRect();return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),v:Math.max(0,Math.min(1,1-(e.clientY-r.top-10)/(r.height-20)))}}
+/* провести пальцем: значения между прошлой и новой точкой заполняются прямой — линия без дыр */
+function crvSet(p){
+  var d=CV.d[CV.lane],i=Math.round(p.x*(CRN-1)),k;
+  if(CV.li<0){d[i]=p.v}
+  else{var a=CV.li,b=i,va=CV.lv,st=a<b?1:-1;for(k=a;k!==b+st;k+=st){var q=a===b?1:(k-a)/(b-a);d[k]=va+(p.v-va)*q}}
+  CV.li=i;CV.lv=p.v;
+}
+crvCv.addEventListener('pointerdown',function(e){
+  if(!CV.ready)return;
+  e.preventDefault();try{crvCv.setPointerCapture(e.pointerId)}catch(x){}
+  var p=crvPos(e);CV.down=true;CV.li=-1;CV.hx=p.x;CV.hv=p.v;crvSet(p);crvPreview(p.x);crvUI();vib(5);
+});
+crvCv.addEventListener('pointermove',function(e){
+  if(!CV.down)return;
+  var p=crvPos(e);CV.hx=p.x;CV.hv=p.v;crvSet(p);crvPreview(p.x);crvUI();
+});
+function crvUp(){
+  if(!CV.down)return;
+  CV.down=false;CV.li=-1;CV.hx=-1;CV.strokes++;
+  var L=LANE[CV.lane];
+  say(crvLaneOn(CV.lane)?L.e+' Нарисовал '+L.n+'! Слушай, как звук меняется':L.e+' Ровная линия — '+L.n+' как было');
+  crvChanged();
+}
+crvCv.addEventListener('pointerup',crvUp);crvCv.addEventListener('pointercancel',crvUp);
+function crvLane(id,quiet){
+  CV.lane=id;crvUI();crvSave();
+  if(!quiet){vib(6);var L=LANE[id];say(L.e+' Рисуем '+(id==='wet'?'волшебство: вверху — весь эффект, внизу — звук как был':L.n+': '+L.top.replace(' ↑','')+' вверху, '+L.bot.replace(' ↓','')+' внизу'))}
+}
+function crvAll(r,quiet){
+  var rr=r||Math.random,ids=LANES.map(function(l){return l.id}),n=2+Math.floor(rr()*2),pick=[];
+  LANES.forEach(function(l){CV.d[l.id].fill(l.neu)});
+  while(pick.length<n){var id=ids[Math.floor(rr()*ids.length)];if(pick.indexOf(id)<0)pick.push(id)}
+  pick.forEach(function(id){crvRandom(id,rr)});
+  CV.lane=pick[0];
+  crvChanged(false);
+  if(!quiet){say('🎲 Во времени меняются: '+pick.map(function(id){return LANE[id].e+' '+LANE[id].n}).join(', '));if(buffer)play()}
+  return pick;
+}
+function crvInit(){
+  if(CV.ready)return;
+  var ln=$('crvLanes'),sh=$('crvShapes');
+  LANES.forEach(function(l){
+    var b=document.createElement('button');b.setAttribute('data-lane',l.id);b.setAttribute('role','tab');b.setAttribute('aria-label','Рисовать: '+l.n);
+    b.style.setProperty('--lc',l.col);b.innerHTML=l.e+'<small>'+l.n+'</small>';
+    b.onclick=function(){crvLane(l.id)};ln.appendChild(b);
+  });
+  CRSHAPES.forEach(function(s){
+    var b=document.createElement('button');b.className='nb';b.setAttribute('data-shape',s[0]);b.setAttribute('aria-label','Форма: '+s[2]);
+    b.innerHTML=s[1]+'<small>'+s[2]+'</small>';
+    b.onclick=function(){
+      var d=CV.d[CV.lane],i;for(i=0;i<CRN;i++)d[i]=crvShape(CV.lane,s[0],i/(CRN-1));
+      vib(8);bounce(b);CV.strokes++;say(s[1]+' '+LANE[CV.lane].e+' '+LANE[CV.lane].n+': '+s[2]);crvChanged();
+    };
+    sh.appendChild(b);
+  });
+  var db=document.createElement('button');db.className='nb';db.id='crvDice';db.setAttribute('aria-label','Случайная линия');db.innerHTML='🎲<small>случайно</small>';
+  db.onclick=function(){crvRandom(CV.lane,Math.random);vib([8,20,8]);bounce(db);CV.strokes++;say('🎲 '+LANE[CV.lane].e+' Случайная '+(CV.lane==='pitch'?'мелодия':'линия')+'!');crvChanged()};
+  sh.appendChild(db);
+  var rb=document.createElement('button');rb.className='nb';rb.id='crvReset';rb.setAttribute('aria-label','Ровная линия — как было');rb.innerHTML='↺<small>как было</small>';
+  rb.onclick=function(){CV.d[CV.lane].fill(LANE[CV.lane].neu);vib(8);say('↺ '+LANE[CV.lane].e+' '+LANE[CV.lane].n+' как было');crvChanged()};
+  sh.appendChild(rb);
+  $('crvAll').onclick=function(){vib([10,30,10]);bounce($('crvAll'));crvAll()};
+  crvLoad();
+  CV.ready=true;crvUI();
 }
 
 /* ---------- ✂️ Нарезка: звук режется на равные кусочки — их можно перемешать, перетащить, перевернуть ----------
@@ -3105,6 +3379,12 @@ function surprise(rnd){
     ecInit();var pr=ECPRE[Math.floor(r()*ECPRE.length)];
     ecPush();saPreset(artistCanvas(),pr[0]);AR.seed=(r()*4294967295)>>>0||1;AR.want=true;ecSync();ecChanged(false);art=' + картина «'+pr[1]+'»';
   }
+  /* в мире ещё и дорожки времени: то громкость, то высота, то ухо… */
+  if(W.on){
+    crvInit();
+    if(r()<0.5){var cp=crvAll(r,true);art+=' + 〰️ '+cp.map(function(id){return LANE[id].e}).join('')}
+    else if(crvOn()){LANES.forEach(function(l){CV.d[l.id].fill(l.neu)});crvChanged(false)}
+  }
   /* иногда и мелодия новая — если в записи есть ровные ноты */
   if(r()<0.3&&noteDice(r,true))art+=' + новая мелодия 🎼';
   refreshTiles();
@@ -3155,6 +3435,10 @@ function trKid(){
       enter:function(c){ecInit();ecPush();saClear(artistCanvas());ecChanged(false);ecSelTool('brush');ecSelPaint('mixed');c.undo0=EC.undo.length},
       done:function(c){return EC.undo.length>c.undo0},
       after:function(){AR.want=true;ecSync();if(buffer)play();say('🎶 Слышишь? Эхо там, где краска!')}},
+    {sel:'#crv',text:'〰️ Проведи линию — звук запоёт!',
+      enter:function(c){crvInit();crvLane('pitch',true);c.s0=CV.strokes},
+      done:function(c){return CV.strokes>c.s0},
+      after:function(){say('🎵 Слышишь? Звук поёт по твоей линии!')}},
     {sel:null,final:true,text:'🎉 Ты художник звука!',act:[['▶ Играть дальше',function(){trEnd(true)}]]}
   ];
 }
@@ -3168,7 +3452,10 @@ function trAdult(){
     {sel:'#ecWrap',text:'Холст эха: вправо — позже (0–3 с), выше — выше по тону, цвет — ухо (голубой левое, янтарный правое), гуще — чаще. Возьмите ✏️ и голубую краску, коснитесь холста — в наушниках эхо слева.',
       act:[['Показать как',function(){ecInit();ecSelTool('pen');ecSelPaint('blue')}]],
       enter:function(c){c.undo0=EC.undo.length},done:function(c){return EC.undo.length>c.undo0&&trHasBlue()}},
-    {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, готовые картины — миниатюры ниже, свайп вбок по тёмному месту меняет температуру, 🖼️ сохраняет картину звука.',
+    {sel:'#crv',top:true,text:'Дорожки времени: 🔊 громкость, 🎵 высота, 👂 ухо, ✨ яркость, 🪄 доля эффекта. Проведите линию слева направо — параметр меняется по ходу звука. Под холстом — формы, 🎲 и ↺.',
+      act:[['Показать как',function(){crvInit();crvLane('pitch',true);var b=document.querySelector('#crvShapes [data-shape=steps]');if(b)b.click()}]],
+      enter:function(c){crvInit();c.s0=CV.strokes},done:function(c){return CV.strokes>c.s0}},
+    {sel:'#ecTools [data-tool=dice]',final:true,text:'Ещё: 🎲 бросает эхо заново, «🎲 Всё случайно во времени» — дорожки, готовые картины — миниатюры, свайп вбок по тёмному месту — температура, 🖼️ сохраняет картину звука.',
       act:[['Готово ✓',function(){trEnd(true)}]]}
   ];
 }
@@ -3225,8 +3512,8 @@ function trShow(i){
   if(s.sel&&s.sel.charAt(0)!=='@'){
     var el=document.querySelector(s.sel);
     if(el)try{
-      /* крупную цель (холст) прижимаем к верху, чтобы бабочка встала под ней; мелкую — в центр */
-      var tall=el.getBoundingClientRect().height>window.innerHeight*0.22;
+      /* крупную цель (холст) или цель с длинной подсказкой прижимаем к верху, чтобы бабочка встала под ней; мелкую — в центр */
+      var tall=s.top||el.getBoundingClientRect().height>window.innerHeight*0.22;
       el.style.scrollMarginTop=tall?'90px':'';
       el.scrollIntoView({block:tall?'start':'center',behavior:W.still?'auto':'smooth'});
     }catch(e){}
@@ -3372,6 +3659,11 @@ if(location.hash.indexOf('#sa-test')===0){
       state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
         ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
         live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}},
+    curves:{init:crvInit,lane:crvLane,all:crvAll,on:crvOn,key:crvKey,factor:crvFactor,strokes:function(){return CV.strokes},
+      set:function(id,f){var d=CV.d[id],i;for(i=0;i<CRN;i++)d[i]=typeof f==='function'?f(i/(CRN-1)):(f==null?LANE[id].neu:f);crvChanged(false)},
+      get:function(id){return Array.prototype.slice.call(CV.d[id])},
+      reset:function(){LANES.forEach(function(l){CV.d[l.id].fill(l.neu)});crvChanged(false)},
+      png:function(){return crvCv.toDataURL('image/png')}},
     slices:{set:function(o){slFresh();if(o.n){SL.n=o.n;slIdent()}if(o.mode)SL.mode=o.mode;if(o.order)SL.order=o.order.slice();if(o.rev)SL.rev=o.rev.slice();slChanged()},
       state:function(){slFresh();return {n:SL.n,order:SL.order.slice(),rev:SL.rev.slice(),mode:SL.mode,on:slOn(),key:slKey('pre')+slKey('post')}},
       dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
