@@ -82,8 +82,8 @@
     /* после эффектов: эхо Слона, хвосты режутся вместе с кусочками */
     T.fx([['echo',3]]);
     SL.set({n:4,mode:'post',order:[3,2,1,0],rev:[false,false,false,false]});
-    var pb=await SL.post(),raw=SL.raw(),n4=Math.round(raw.length/4),okp=pb.length===raw.length,dmax=0;
-    for(i=2000;i<n4-2000;i+=7){var dd=Math.abs(pb.getChannelData(0)[i]-raw.getChannelData(0)[Math.round(raw.length*3/4)+i]);if(dd>dmax)dmax=dd}
+    var pb=await SL.post(),raw=SL.raw(),RR=SL.range(raw),n4=Math.round((RR[1]-RR[0])/4),okp=pb.length===raw.length,dmax=0;
+    for(i=2000;i<n4-2000;i+=7){var dd=Math.abs(pb.getChannelData(0)[RR[0]+i]-raw.getChannelData(0)[RR[0]+Math.round((RR[1]-RR[0])*3/4)+i]);if(dd>dmax)dmax=dd}
     check('S11 ✂️ после эффектов: первый кусочек — это хвост эха',okp&&dmax<1e-6&&raw.length>q0.length*2,'длина '+(pb.length/sr).toFixed(2)+' с, разница '+dmax.toExponential(1));
     var pr=await T.render();
     check('S12 после эффектов: сохраняется порезанный звук',Math.abs(pr.length-pb.length-Math.ceil(0.05*sr))<2,(pr.length/sr).toFixed(2)+' с');
@@ -127,6 +127,17 @@
     $('fxDice').click();await sleep(30);P.stop();
     check('S22 кнопка 🎲 эффектов включает эффекты',P.state().fx>=1,P.state().fx+' эффектов');
 
+    /* жалоба тестировщика: тишина в начале и в конце не должна превращаться в пустые кусочки */
+    var Ls=Math.round(sr*2),S=new Float32Array(Ls);for(i=Math.round(sr*0.5);i<Math.round(sr*1.3);i++)S[i]=0.5*Math.sin(2*Math.PI*440*i/sr);
+    T.load([S],sr);T.fx([]);P.mix(1);SL.set({n:4,mode:'pre',order:[3,2,1,0],rev:[false,false,false,false]});
+    var cs=SL.src(),cd=cs.getChannelData(0),R4=SL.range(cs.length===Ls?T.slices.src():cs),q4=[],sl0=Math.round(sr*0.5),sl1=Math.round(sr*1.3),k4;
+    for(k4=0;k4<4;k4++){var a4=sl0+Math.round((sl1-sl0)*k4/4)+200,e4=sl0+Math.round((sl1-sl0)*(k4+1)/4)-200,ss=0;for(i=a4;i<e4;i++)ss+=cd[i]*cd[i];q4.push(Math.sqrt(ss/(e4-a4)))}
+    var headQ=0;for(i=0;i<Math.round(sr*0.45);i++)headQ=Math.max(headQ,Math.abs(cd[i]));
+    check('S24 тишина по краям не режется: все 4 кусочка со звуком, тишина осталась на месте',q4.every(function(v){return v>0.3})&&headQ===0&&cs.length===Ls,q4.map(function(v){return v.toFixed(2)}).join(' ')+' · начало '+headQ);
+    T.fx([['echo',3]]);SL.set({mode:'post',order:[3,2,1,0]});var ps4=await SL.post(),pr4=SL.raw(),PR=SL.range(pr4),pq=[];
+    for(k4=0;k4<4;k4++){var pa=PR[0]+Math.round((PR[1]-PR[0])*k4/4)+300,pe=PR[0]+Math.round((PR[1]-PR[0])*(k4+1)/4)-300,p2=0;for(i=pa;i<pe;i++)p2+=ps4.getChannelData(0)[i]*ps4.getChannelData(0)[i];pq.push(Math.sqrt(p2/(pe-pa)))}
+    check('S25 после эффектов: хвост эха не превращается в тихие кусочки',pq.every(function(v){return v>0.02}),pq.map(function(v){return v.toFixed(3)}).join(' ')+' · режу '+(PR[0]/sr).toFixed(2)+'–'+(PR[1]/sr).toFixed(2)+' с из '+(pr4.length/sr).toFixed(2));
+    T.fx([]);SL.set({mode:'pre',order:[0,1,2,3]});
     /* мир: полоска на месте, нарезка слышна */
     T.load([Q],sr);T.fx([]);P.mix(1);T.out(1,0);
     T.world.set(true);await sleep(300);$('tourPick').hidden=true;

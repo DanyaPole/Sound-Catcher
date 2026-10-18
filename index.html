@@ -3277,12 +3277,27 @@ function slOn(){
 function slKey(m){return slOn()&&SL.mode===m?':s'+m+SL.n+'.'+SL.order.join(',')+'.'+SL.rev.map(function(r){return r?1:0}).join(''):''}
 function slAfter(){return slOn()&&SL.mode==='post'}
 /* кусочек k — отсчёты [L·k/n, L·(k+1)/n); длина звука не меняется; стыки плавные (6 мс), соседи по порядку — без стыка */
+/* где звук на самом деле слышен: от первого до последнего окна 10 мс, чья громкость не тише −26 дБ от самого громкого окна.
+ Режем только эту часть — тишина в начале, в конце и тихий хвост после эффектов не становятся «пустыми» кусочками */
+var slRangeCache={b:null,r:null};
+function slRange(b){
+  if(slRangeCache.b===b)return slRangeCache.r;
+  var L=b.length,Wn=Math.max(1,Math.round(b.sampleRate*0.01)),nw=Math.ceil(L/Wn),rm=new Float32Array(nw),mx=0,c,i,w;
+  for(c=0;c<b.numberOfChannels;c++){var x=b.getChannelData(c);for(w=0;w<nw;w++){var e=0,e1=Math.min(L,(w+1)*Wn);for(i=w*Wn;i<e1;i++)e+=x[i]*x[i];e=Math.sqrt(e/(e1-w*Wn));if(e>rm[w])rm[w]=e}}
+  for(w=0;w<nw;w++)if(rm[w]>mx)mx=rm[w];
+  var thr=mx*0.05,a=-1,z=-1;
+  for(w=0;w<nw;w++)if(rm[w]>thr){if(a<0)a=w;z=w}
+  var r=a<0||mx<1e-6?[0,L]:[Math.max(0,(a-1)*Wn),Math.min(L,(z+2)*Wn)];
+  if(r[1]-r[0]<SL.n*8)r=[0,L];
+  slRangeCache={b:b,r:r};return r;
+}
 function sliceBuf(b){
-  var L=b.length,n=SL.n,out=newBuf(b),F=Math.max(1,Math.round(b.sampleRate*0.006)),c,j,i;
-  function bd(i){return Math.round(L*i/n)}
+  var L=b.length,n=SL.n,out=newBuf(b),F=Math.max(1,Math.round(b.sampleRate*0.006)),R=slRange(b),A=R[0],E=R[1],c,j,i;
+  function bd(i){return A+Math.round((E-A)*i/n)}
   function joined(j){return j>0&&j<n&&!SL.rev[j]&&!SL.rev[j-1]&&SL.order[j]===SL.order[j-1]+1}
   for(c=0;c<b.numberOfChannels;c++){
-    var x=b.getChannelData(c),y=out.getChannelData(c),o=0;
+    var x=b.getChannelData(c),y=out.getChannelData(c),o=A;
+    y.set(x.subarray(0,A),0);y.set(x.subarray(E),E);
     for(j=0;j<n;j++){
       var k=SL.order[j],s0=bd(k),m=bd(k+1)-s0,rv=SL.rev[j],fi=j>0&&!joined(j),fo=j<n-1&&!joined(j+1);
       for(i=0;i<m;i++){
@@ -3303,9 +3318,9 @@ function slUI(){
 /* высоты кусочков (по 12 столбиков) — из записи, а после эффектов — из обработанного звука */
 function slPeaks(b){
   if(SL.pks===b&&SL.pkn===SL.n)return SL.pk;
-  var d=b.getChannelData(0),B=12,M=SL.n*B,pk=new Float32Array(M),mx=1e-4,i,j;
+  var d=b.getChannelData(0),B=12,M=SL.n*B,pk=new Float32Array(M),mx=1e-4,R=slRange(b),i,j;
   for(i=0;i<M;i++){
-    var a=Math.round(d.length*i/M),e=Math.round(d.length*(i+1)/M),m=0;
+    var a=R[0]+Math.round((R[1]-R[0])*i/M),e=R[0]+Math.round((R[1]-R[0])*(i+1)/M),m=0;
     for(j=a;j<e;j+=4){var v=d[j]<0?-d[j]:d[j];if(v>m)m=v}
     pk[i]=m;if(m>mx)mx=m;
   }
@@ -3319,7 +3334,7 @@ function slDraw(){
   var f=fit(slCv);if(!f)return;
   slFresh();
   var g=f.g,w=f.w,h=f.h,n=SL.n,bw=w/n,B=12,j,i,
-      pk=slPeaks(SL.mode==='post'&&PB.r&&PB.rk===postRawKey()?PB.r:baseBuf());
+      sb=slBufNow(),pk=slPeaks(sb),R=slRange(sb);
   g.textAlign='center';g.font='700 12px sans-serif';
   for(j=0;j<n;j++){
     var k=SL.order[j],x=j*bw,up=SL.drag&&SL.drag.moved&&SL.drag.j===j,y0=up?1:6,bh0=h-(up?2:12);
@@ -3333,8 +3348,11 @@ function slDraw(){
     }
     g.fillStyle=W.on?'#fff':'#2a1a5e';g.fillText((SL.rev[j]?'⏪':'')+(k+1),x+bw/2,y0+13);
   }
-  if(SES&&playFrac>=0){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(playFrac*w-1.5,0,3,h)}
+  if(SES&&playFrac>=0){var px=(playFrac*sb.length-R[0])/(R[1]-R[0]);if(px>=0&&px<=1){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(px*w-1.5,0,3,h)}}
 }
+/* полоска показывает только звучащую часть: перевод «кусочек j» ↔ «доля всего звука» */
+function slBufNow(){return SL.mode==='post'&&PB.r&&PB.rk===postRawKey()?PB.r:baseBuf()}
+function slFrac(j){var b=slBufNow(),R=slRange(b);return (R[0]+(R[1]-R[0])*j/SL.n)/b.length}
 function slPos(e){var r=slCv.getBoundingClientRect();return Math.max(0,Math.min(SL.n-1,Math.floor((e.clientX-r.left)/r.width*SL.n)))}
 slCv.addEventListener('pointerdown',function(e){if(!buffer)return;slFresh();SL.drag={j:slPos(e),x:e.clientX,moved:false}});
 slCv.addEventListener('pointermove',function(e){
@@ -3355,7 +3373,7 @@ slCv.addEventListener('pointerup',function(){
     play();return;
   }
   say('▶ Играю с кусочка '+(SL.order[d.j]+1));
-  play(d.j/SL.n);
+  play(slFrac(d.j));
 });
 slCv.addEventListener('pointercancel',function(){SL.drag=null;slDraw()});
 /* 🎲 порезать и перемешать: другой порядок, а некоторые кусочки задом наперёд */
@@ -3847,7 +3865,7 @@ if(location.hash.indexOf('#sa-test')===0){
       png:function(){return crvCv.toDataURL('image/png')}},
     slices:{set:function(o){slFresh();if(o.n){SL.n=o.n;slIdent()}if(o.mode)SL.mode=o.mode;if(o.order)SL.order=o.order.slice();if(o.rev)SL.rev=o.rev.slice();slChanged()},
       state:function(){slFresh();return {n:SL.n,order:SL.order.slice(),rev:SL.rev.slice(),mode:SL.mode,on:slOn(),key:slKey('pre')+slKey('post')}},
-      dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
+      dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},range:slRange,fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
       octave:function(){return octBuf(srcBuf())},src:function(){return srcBuf()}}
   }};
   if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
