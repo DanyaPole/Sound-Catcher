@@ -43,6 +43,7 @@ button{font-family:inherit;font-weight:800}
 .cb:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
 #portal{background:conic-gradient(from 200deg,#ff3d71,#ff9f1c,#ffd23f,#22c7a9,#22b8cf,#7c4dff,#ff3d71)}
 #help{background:var(--sun);color:var(--ink);display:none}
+#cfg{background:#8d7bd6}
 #portal.hint{animation:tr-portal 1.2s ease-in-out infinite}
 @keyframes tr-portal{0%,100%{transform:scale(1);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 0 rgba(255,210,63,.95)}50%{transform:scale(1.12);box-shadow:0 5px 0 rgba(0,0,0,.15),0 0 0 14px rgba(255,210,63,0)}}
 #portal.hint:after{content:'Нажми! 🌌';position:absolute;top:50%;right:54px;transform:translateY(-50%);white-space:nowrap;background:#fff;color:var(--ink);border-radius:999px;padding:4px 10px;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,.15)}
@@ -113,8 +114,14 @@ body.world .chip.calm{background:transparent;border-color:transparent}
 #rep[data-m=once]{background:#a99bd6;box-shadow:0 5px 0 #7d6fae}
 #ab{background:#22b8cf;box-shadow:0 5px 0 #1a8fa1;flex-direction:column;line-height:1}
 #ab small{font-size:8px;font-weight:800;margin-top:1px}
-#demoPick{position:fixed;inset:0;z-index:11;display:flex;align-items:center;justify-content:center;background:rgba(20,10,50,.55);padding:16px}
-#demoPick[hidden]{display:none}
+#demoPick,#cfgPick{position:fixed;inset:0;z-index:11;display:flex;align-items:center;justify-content:center;background:rgba(20,10,50,.55);padding:16px}
+#demoPick[hidden],#cfgPick[hidden]{display:none}
+.cfg-sw{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px;border:3px solid #fff;border-radius:18px;background:#f1ecff;color:var(--ink);font-size:16px;font-weight:700;cursor:pointer;text-align:left}
+.cfg-sw i{flex:0 0 auto;width:48px;height:28px;border-radius:14px;background:#c9c0e6;position:relative}
+.cfg-sw i:after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.cfg-sw[aria-checked=true] i{background:#2fb59f}
+.cfg-sw[aria-checked=true] i:after{left:23px}
+.cfg-sw:focus-visible,.t:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .dpk{width:min(100%,340px);background:#fff;border-radius:26px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);color:var(--ink)}
 .dph{display:flex;align-items:center;justify-content:space-between;font-size:18px;padding:0 4px 8px}
 .dph button{width:44px;height:44px;border:0;border-radius:50%;background:#f1ecff;color:var(--ink);font-size:18px;cursor:pointer}
@@ -201,6 +208,13 @@ body.ready #demoBtn{display:none}
 .t .pc{position:absolute;top:-10px;right:-8px;min-width:36px;padding:1px 5px;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;line-height:1.4;border:2px solid #fff;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.7,.6,1);pointer-events:none;z-index:1}
 .t.sel .pc{transform:scale(1)}
 .t[data-id=orig] .pc{display:none}
+.t .nm{display:none;position:absolute;top:100%;left:-5px;right:-5px;margin-top:5px;font-size:12px;line-height:1.1;font-weight:800;color:var(--ink);text-align:center;overflow-wrap:anywhere;pointer-events:none}
+body.labels .grid{row-gap:38px;margin-bottom:24px}
+body.labels .t .nm{display:block}
+#fxtip{position:fixed;z-index:12;max-width:min(80vw,260px);padding:6px 12px;border-radius:12px;background:var(--ink);color:#fff;border:2px solid #fff;font-size:15px;font-weight:700;line-height:1.25;text-align:center;pointer-events:none;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+body.world #fxtip{background:#f3eeff;color:#1a1033;border-color:#1a1033}
+#fxtip[hidden]{display:none}
+.t{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* выключено — тусклая и серая, включено — яркая, с рамкой и точками уровня ●●○ */
 .t:not(.sel){filter:saturate(.25) brightness(1.08);opacity:.6}
 .t .lv{position:absolute;left:0;right:0;bottom:5px;display:flex;justify-content:center;gap:3px;pointer-events:none}
@@ -533,6 +547,13 @@ body.world #wNote{display:block}
   <button id="gateDemo" class="pill demo" aria-label="Попробовать без микрофона: готовый звук птички">🐦 Попробовать без микрофона</button>
 </div>
 
+<div id="cfgPick" hidden role="dialog" aria-modal="true" aria-label="Настройки">
+  <div class="dpk">
+    <div class="dph"><b>⚙️ Настройки</b><button id="cfgClose" aria-label="Закрыть">✕</button></div>
+    <button id="cfgLabels" class="cfg-sw" role="switch" aria-checked="false"><span>Подписи под плитками</span><i aria-hidden="true"></i></button>
+  </div>
+</div>
+<div id="fxtip" role="tooltip" hidden></div>
 <div id="demoPick" hidden role="dialog" aria-label="Готовые звуки">
   <div class="dpk">
     <div class="dph"><b>🎁 Готовые звуки</b><button id="dpClose" aria-label="Закрыть">✕</button></div>
@@ -559,6 +580,7 @@ body.world #wNote{display:block}
 <header class="bar">
   <h1 class="brand logo"><img src="icon.svg" alt="" width="36" height="36"><span><b>З</b><b>в</b><b>у</b><b>к</b><b>о</b><b>л</b><b>о</b><b>в</b><b>к</b><b>а</b></span></h1>
   <div class="bar-btns">
+    <button class="cb" id="cfg" aria-label="Настройки" aria-haspopup="dialog">⚙️</button>
     <button class="cb" id="help" aria-label="Как играть">❓</button>
     <button class="cb" id="portal" aria-label="Параллельный мир" aria-pressed="false">🎨</button>
   </div>
@@ -940,11 +962,40 @@ function setTab(k,quiet){
 
 /* ---------- плитки эффектов: сила 25% → 50% → 100% → выкл ---------- */
 var tiles={};
+/* название эффекта: подсказка при наведении мыши, при фокусе с клавиатуры и при долгом нажатии (≈0,5 с); без анимации */
+var TXT={cfg:'Настройки',labels:'Подписи под плитками'};
+var tipEl=$('fxtip'),tipT=0,tipH=0,lpT=0,lpFired=false,lpX=0,lpY=0;
+function tipOff(){clearTimeout(tipT);clearTimeout(lpT);clearTimeout(tipH);tipEl.hidden=true}
+function tipShow(b,txt){
+  clearTimeout(tipH);tipEl.textContent=txt;tipEl.hidden=false;
+  var r=b.getBoundingClientRect(),w=tipEl.offsetWidth,h=tipEl.offsetHeight,vw=document.documentElement.clientWidth;
+  var x=Math.max(6,Math.min(vw-w-6,r.left+r.width/2-w/2)),y=r.top-h-8;
+  if(y<6)y=r.bottom+8;
+  tipEl.style.left=x+'px';tipEl.style.top=y+'px';
+}
+function nameTip(b,txt){
+  b.addEventListener('pointerenter',function(e){if(e.pointerType!=='mouse')return;clearTimeout(tipT);tipT=setTimeout(function(){tipShow(b,txt)},400)});
+  b.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse')tipOff()});
+  b.addEventListener('focus',function(){var kb=false;try{kb=b.matches(':focus-visible')}catch(e){}if(kb)tipShow(b,txt)});
+  b.addEventListener('blur',tipOff);
+  b.addEventListener('pointerdown',function(e){
+    lpFired=false;tipOff();
+    if(e.pointerType==='mouse')return;
+    lpX=e.clientX;lpY=e.clientY;
+    lpT=setTimeout(function(){lpFired=true;vib(12);tipShow(b,txt)},500);
+  });
+  b.addEventListener('pointermove',function(e){if(lpT&&!lpFired&&Math.abs(e.clientX-lpX)+Math.abs(e.clientY-lpY)>10){clearTimeout(lpT);lpT=0}});
+  function up(){clearTimeout(lpT);lpT=0;if(lpFired){clearTimeout(tipH);tipH=setTimeout(tipOff,1200)}}
+  b.addEventListener('pointerup',up);
+  b.addEventListener('pointercancel',function(){up();lpFired=false});
+  b.addEventListener('contextmenu',function(e){e.preventDefault()});
+}
 EFFECTS.forEach(function(f){
   var b=document.createElement('button');
   b.className='t';b.setAttribute('data-id',f.id);b.setAttribute('data-l','0');b.setAttribute('aria-label',f.n);
-  b.innerHTML='<span class="sz"><span class="em">'+f.e+'</span></span><span class="pc"></span><span class="lv"><i></i><i></i><i></i></span>';
-  b.onclick=function(){tap(f.id,b)};
+  b.innerHTML='<span class="sz"><span class="em">'+f.e+'</span></span><span class="pc"></span><span class="lv"><i></i><i></i><i></i></span><span class="nm" aria-hidden="true">'+f.n+'</span>';
+  b.onclick=function(){tipOff();if(lpFired){lpFired=false;return}tap(f.id,b)};
+  nameTip(b,f.n);
   grid.appendChild(b);tiles[f.id]=b;
 });
 function lvlOf(id){for(var i=0;i<active.length;i++)if(active[i].id===id)return active[i].lvl;return 0}
@@ -956,6 +1007,7 @@ function refreshTiles(){
     b.setAttribute('data-l',String(l));
     b.classList.toggle('sel',l>0);
     b.setAttribute('aria-pressed',l>0?'true':'false');
+    b.setAttribute('aria-label',l>0&&f.id!=='orig'?f.n+', '+PCT[l]:f.n);
     b.querySelector('.pc').textContent=f.id==='orig'?'':PCT[l];
   });
   $('multiTxt').textContent=multi?('выбрано '+active.length+' из 3'):'смешай до 3 эффектов сразу';
@@ -3769,6 +3821,26 @@ function loadDemo(id){
   stopPlay();rawBuf=b;cleanBuf=null;gen++;applyBuf();active=[];lastId='orig';refreshTiles();showResult();
   say(D.say+' Смотри, как звук рисует');play();
 }
+/* ---------- настройки: подписи под плитками (по умолчанию выключены) ---------- */
+var LKEY='zv-labels',cfgBtn=$('cfg'),cfgPick=$('cfgPick'),cfgSw=$('cfgLabels');
+function labelsSet(on,save){
+  document.body.classList.toggle('labels',on);cfgSw.setAttribute('aria-checked',on?'true':'false');
+  if(save)try{localStorage.setItem(LKEY,on?'1':'0')}catch(e){}
+}
+function cfgOpen(){cfgPick.hidden=false;cfgSw.focus()}
+function cfgClose(){if(cfgPick.hidden)return;cfgPick.hidden=true;cfgBtn.focus()}
+try{labelsSet(localStorage.getItem(LKEY)==='1',false)}catch(e){}
+cfgBtn.onclick=function(){cfgOpen()};
+$('cfgClose').onclick=cfgClose;
+cfgSw.onclick=function(){labelsSet(cfgSw.getAttribute('aria-checked')!=='true',true)};
+cfgPick.addEventListener('click',function(e){if(e.target===cfgPick)cfgClose()});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){if(!tipEl.hidden)tipOff();cfgClose();return}
+  if(e.key==='Tab'&&!cfgPick.hidden){
+    var f=[$('cfgClose'),cfgSw],i=f.indexOf(document.activeElement);
+    e.preventDefault();f[(i+(e.shiftKey?f.length-1:1))%f.length].focus();
+  }
+});
 /* окно выбора готового звука */
 function demoOpen(){
   var g=$('dpGrid');
