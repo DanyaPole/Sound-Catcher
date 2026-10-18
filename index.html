@@ -87,7 +87,23 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .rb{flex:0 0 auto;border-radius:50%;border:5px solid #fff;color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
 .rb:active{transform:translateY(5px);box-shadow:0 1px 0 rgba(0,0,0,.3)}
 /* плеер прилипает к верху экрана: ▶/⏹, повтор и 🎲 видны при любой прокрутке */
-.tbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;gap:8px;padding:6px;border-radius:34px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
+/* плеер и строка «Звучит» прилипают к верху вместе */
+#dock{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:7;display:flex;flex-direction:column;align-items:center;gap:6px;width:min(100%,360px)}
+.nowr{gap:6px;padding:4px;border-radius:26px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 0 rgba(0,0,0,.08);box-sizing:border-box}
+#now{flex:1;min-width:0;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;align-items:center;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:14px}
+#now::-webkit-scrollbar{display:none}
+#now .lbl{flex:none;font-size:13px;font-weight:700;opacity:.7;padding-left:6px}
+.chip{flex:none;min-height:44px;border:2px solid var(--vio);border-radius:999px;background:#fff;color:var(--ink);font-size:14px;padding:0 10px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap}
+.chip b{font-size:12px;opacity:.55}
+.chip.calm{border-color:transparent;background:transparent;cursor:default;opacity:.8}
+.nowr.ab #now{opacity:.45}
+#resetAll,.nowr .ub{flex:none;min-width:44px;min-height:44px;border:0;border-radius:22px;background:var(--vio);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 var(--viod)}
+#resetAll small,.nowr .ub small{font-size:10px;font-weight:700}
+#resetAll:disabled,.nowr .ub:disabled{opacity:.35;cursor:default}
+body.world .nowr{background:rgba(24,16,58,.72);box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.35)}
+body.world .chip{background:rgba(255,255,255,.1);color:#fff;border-color:#a98bff}
+body.world .chip.calm{background:transparent;border-color:transparent}
+.tbar{gap:8px;padding:6px;border-radius:34px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 5px 0 rgba(0,0,0,.08)}
 #play{width:64px;height:64px;font-size:30px;background:var(--ok);box-shadow:0 6px 0 var(--okd);padding-left:4px}
 #play.st{padding-left:0}
 .rb.sm{width:48px;height:48px;font-size:21px;border-width:4px}
@@ -158,6 +174,12 @@ body.world #slStrip{background:rgba(255,255,255,.08)}
 .t .pc{position:absolute;top:-10px;right:-8px;min-width:36px;padding:1px 5px;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;line-height:1.4;border:2px solid #fff;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.7,.6,1);pointer-events:none;z-index:1}
 .t.sel .pc{transform:scale(1)}
 .t[data-id=orig] .pc{display:none}
+/* выключено — тусклая и серая, включено — яркая, с рамкой и точками уровня ●●○ */
+.t:not(.sel){filter:saturate(.25) brightness(1.08);opacity:.6}
+.t .lv{position:absolute;left:0;right:0;bottom:5px;display:flex;justify-content:center;gap:3px;pointer-events:none}
+.t .lv i{width:7px;height:7px;border-radius:50%;background:rgba(26,16,51,.18);border:1px solid rgba(255,255,255,.7)}
+.t[data-l="1"] .lv i:nth-child(1),.t[data-l="2"] .lv i:nth-child(-n+2),.t[data-l="3"] .lv i{background:var(--ink)}
+.t[data-id=orig] .lv{display:none}
 .t.no{animation:no .4s}
 @keyframes no{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .t.sel .em{animation:var(--an) var(--du,1.8s) ease-in-out infinite}
@@ -514,11 +536,17 @@ body.world #crvBox{display:flex}
 <div id="eq"><i></i><i></i><i></i><i></i><i></i></div>
 <div id="msg">Нажми на красную кнопку! 👆</div>
 <div id="fx">
+  <div id="dock">
   <div class="row tbar" id="tbar">
     <button id="play" class="rb" aria-label="Играть">▶</button>
     <canvas id="wave" aria-label="Волна: коснись — играть с этого места, проведи пальцем вбок — выбрать кусочек"></canvas>
     <button id="rep" class="rb sm" data-m="once" aria-label="Повтор: один раз">➡️</button>
     <button id="surprise" class="rb sm" aria-label="Сюрприз: всё случайно">🎲</button>
+  </div>
+  <div class="row nowr" id="nowRow">
+    <div id="now" aria-live="polite" aria-label="Что сейчас звучит"></div>
+    <button id="resetAll" aria-label="Сбросить всё: звук как был">↺<small>всё</small></button>
+  </div>
   </div>
   <div class="row shr">
     <button id="share" class="pill" aria-label="Поделиться">📤 Отправить звук</button>
@@ -876,7 +904,7 @@ var tiles={};
 EFFECTS.forEach(function(f){
   var b=document.createElement('button');
   b.className='t';b.setAttribute('data-id',f.id);b.setAttribute('data-l','0');b.setAttribute('aria-label',f.n);
-  b.innerHTML='<span class="sz"><span class="em">'+f.e+'</span></span><span class="pc"></span>';
+  b.innerHTML='<span class="sz"><span class="em">'+f.e+'</span></span><span class="pc"></span><span class="lv"><i></i><i></i><i></i></span>';
   b.onclick=function(){tap(f.id,b)};
   grid.appendChild(b);tiles[f.id]=b;
 });
@@ -1731,13 +1759,16 @@ function applyBuf(){
   if(REP.g!==gen){REP.g=gen;REP.a=0;REP.b=1}   /* новый звук — снова весь, без кусочка */
   makePeaks();cache={key:'',blob:null};view=null;viewBusy='';drawWave(0);
 }
+function cleanSet(on,quiet){
+  if(!rawBuf||on===cleanOn)return;
+  stopPlay();cleanOn=on;
+  var ch=$('chipClean');ch.classList.toggle('on',cleanOn);ch.setAttribute('aria-checked',cleanOn?'true':'false');
+  applyBuf();needView();
+  if(!quiet)say(cleanOn?'Убрали шипение и шум ✨ Слышишь разницу?':'Вернули как было 🎤');
+}
 $('chipClean').onclick=function(){
   if(!rawBuf)return;
-  stopPlay();cleanOn=!cleanOn;
-  var ch=$('chipClean');ch.classList.toggle('on',cleanOn);ch.setAttribute('aria-checked',cleanOn?'true':'false');
-  applyBuf();needView();vib(10);
-  say(cleanOn?'Убрали шипение и шум ✨ Слышишь разницу?':'Вернули как было 🎤');
-  play();
+  cleanSet(!cleanOn);vib(10);play();
 };
 
 /* БПФ */
@@ -3392,6 +3423,52 @@ function surprise(rnd){
   play();
 }
 $('surprise').onclick=function(){vib([10,30,10]);bounce($('surprise'));burst($('surprise'));surprise()};
+
+/* ---------- «Звучит»: всё, что сейчас меняет звук, — одной строкой; ✕ выключает, ↺ сбрасывает всё ----------
+   Строка не знает, кто и как поменял звук: раз в 250 мс сравнивается снимок настроек */
+var NOW={sig:'',busy:false};
+function sndSig(){
+  return [gen,fxKey(),multi?1:0,MIX.toFixed(2),VOL.toFixed(2),TEMP.toFixed(2),cleanOn?1:0,noteKey(),slKey('pre')+slKey('post'),AR.on?artistKey():'',crvKey()].join('|');
+}
+function volUI(){volEl.value=Math.round(VOL*100);$('volTxt').textContent=volEl.value+'%'}
+/* что звучит: [подпись, как выключить] */
+function nowItems(){
+  var L=[];
+  active.forEach(function(a){L.push([EMO[a.id]+' '+NAME[a.id]+' '+PCT[a.lvl],function(){active=active.filter(function(x){return x.id!==a.id});lastId=active.length?active[active.length-1].id:'orig';refreshTiles()}])});
+  if(MIX<1)L.push(['💧 '+Math.round(MIX*100)+'% волшебства',function(){MIX=1;mixUI()}]);
+  if(VOL!==1)L.push(['🔊 '+Math.round(VOL*100)+'%',function(){VOL=1;volUI();if(curOut){try{curOut.vg.gain.setTargetAtTime(1,curOut.vg.context.currentTime,0.02)}catch(e){}}}]);
+  if(TEMP!==0)L.push(['🌡️ '+(Math.abs(TEMP)>=0.7?'очень ':'')+(TEMP<0?'холодный':'тёплый'),function(){TEMP=0;tempEl.value=0;tempUI()}]);
+  if(cleanOn)L.push(['✨ Чистый звук',function(){cleanSet(false,true)}]);
+  if(noteKey())L.push(['🎼 ноты изменены',function(){NE.edits={};noteChanged()}]);
+  if(slOn())L.push(['✂️ '+SL.n+' '+slWord(SL.n)+(SL.mode==='post'?' после':''),function(){slIdent();slChanged()}]);
+  if(AR.on)L.push(['🎨 холст эха',function(){AR.want=false;ecSync()}]);
+  if(crvOn())L.push(['〰️ '+LANES.filter(function(l){return crvLaneOn(l.id)}).map(function(l){return l.e}).join(''),function(){LANES.forEach(function(l){CV.d[l.id].fill(l.neu)});crvChanged(false)}]);
+  return L;
+}
+function nowDraw(){
+  var box=$('now'),L=nowItems();box.innerHTML='';
+  var lb=document.createElement('span');lb.className='lbl';lb.textContent='Звучит:';box.appendChild(lb);
+  if(!L.length){var c=document.createElement('span');c.className='chip calm';c.textContent='👂 как было';box.appendChild(c)}
+  L.forEach(function(it){
+    var b=document.createElement('button');b.className='chip';b.setAttribute('aria-label','Выключить: '+it[0]);
+    b.innerHTML='<span></span><b>✕</b>';b.firstChild.textContent=it[0];
+    b.onclick=function(){vib(8);it[1]();say('✕ Выключил: '+it[0]);nowTick();if(buffer)play()};
+    box.appendChild(b);
+  });
+  $('resetAll').disabled=!L.length;
+}
+function resetAll(){
+  var L=nowItems();if(!L.length)return;
+  L.forEach(function(it){it[1]()});
+  say('↺ Всё как было: без эффектов и настроек');nowTick();if(buffer)play();
+}
+$('resetAll').onclick=function(){vib([8,20,8]);bounce($('resetAll'));resetAll()};
+function nowTick(){
+  if(!buffer)return;
+  var s=sndSig();if(s===NOW.sig)return;
+  NOW.sig=s;nowDraw();
+}
+setInterval(nowTick,250);
 
 /* ---------- Обучение: для малыша и для взрослого. Шаг засчитывается по действию, а не по кнопке «Далее» ---------- */
 var TRK='zv-tour';
