@@ -98,6 +98,25 @@
     gd.click();await sleep(300);P.stop();
     check('D8 оттуда сразу птичка, экран микрофона закрыт',$('gate').classList.contains('hide')&&Math.abs(T.slices.src().duration-2.4)<0.01,'');
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
+
+    /* ---- шаг 5: запись ---- */
+    var md=W.navigator.mediaDevices,gum=md.getUserMedia.bind(md),asked=null;
+    md.getUserMedia=function(c){asked=c;return gum(c)};
+    W.scrollTo(0,0);$('rec').click();
+    var seen=0,maxW=0;
+    for(i=0;i<16;i++){await sleep(100);var lv=$('lvl');if(W.getComputedStyle(lv).display!=='none'){seen++;maxW=Math.max(maxW,+lv.getAttribute('aria-valuenow'))}}
+    check('M1 запись без автоусиления браузера (autoGainControl: false)',asked&&asked.audio&&asked.audio.autoGainControl===false,JSON.stringify(asked&&asked.audio));
+    check('M2 во время записи виден настоящий уровень из микрофона',seen>=10&&maxW>0,'видно '+seen+' кадров, уровень до '+maxW+'%');
+    $('rec').click();
+    var got=false;for(i=0;i<60&&!got;i++){await sleep(100);got=T.player.state().on||$('fx').classList.contains('show')&&!D.body.classList.contains('recording')}
+    P.stop();
+    var sb2=T.slices.src(),pk=0,d2=sb2.getChannelData(0);for(i=0;i<d2.length;i++)pk=Math.max(pk,Math.abs(d2[i]));
+    check('M3 запись выровнена до пика 0,7 (не 0,9), усиление не больше ×3',got&&pk<=0.7001&&T.rec.gain()<=3,'пик '+pk.toFixed(3)+', усиление ×'+T.rec.gain().toFixed(2)+' · '+$('msg').textContent);
+    var R=T.rec,t=10000;R.reset(t);
+    var j1=R.judge(0.001,t+800),j2=R.judge(0.001,t+1600),j3=R.judge(0.2,t+1700),j4=R.judge(0.99,t+1800);
+    check('M4 тишина дольше 1,5 с — «очень тихо», голос — снова хорошо, почти потолок — «очень громко»',j1===''&&j2==='quiet'&&j3===''&&j4==='loud',[j1,j2,j3,j4].join(','));
+    check('M5 тексты подсказок понятны',/громче или поднеси/.test(R.say.quiet)&&/отодвинь/.test(R.say.loud),'');
+    T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
     await report({ok:true,results:results,png:W.__png});

@@ -61,12 +61,13 @@ body.ready #rec{font-size:min(10vw,48px);animation:none;box-shadow:0 6px 0 var(-
 #rec.on:before{content:"";width:34%;height:34%;background:#fff;border-radius:10px}
 #rec.on span{display:none}
 #msg{min-height:42px;display:flex;align-items:center;justify-content:center;font-size:17px;text-align:center;padding:8px 18px;max-width:340px;background:rgba(255,255,255,.85);border-radius:999px;box-shadow:0 4px 0 rgba(0,0,0,.08)}
-#eq{display:none;gap:6px;height:34px;align-items:center}
-body.recording #eq{display:flex}
-#eq i{width:8px;border-radius:4px;background:var(--rec);animation:eq .6s ease-in-out infinite alternate}
-#eq i:nth-child(2){background:#ff9f1c;animation-delay:.1s}#eq i:nth-child(3){background:#22b8cf;animation-delay:.2s}
-#eq i:nth-child(4){background:var(--vio);animation-delay:.3s}#eq i:nth-child(5){background:#2ec4b6;animation-delay:.15s}
-@keyframes eq{from{height:6px}to{height:32px}}
+/* уровень записи — настоящий, из микрофона: тихо | хорошо | громко */
+#lvl{display:none;width:min(80vw,280px);flex-direction:column;gap:3px}
+body.recording #lvl{display:flex}
+#lvl .lz{position:relative;height:14px;border-radius:7px;overflow:hidden;background:linear-gradient(90deg,#c9c3dd 0 25%,#9fe0a6 25% 80%,#ff9b9b 80%)}
+#lvl .lz i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ink);opacity:.75;border-radius:7px;transition:width .06s linear}
+#lvl .ll{display:flex;justify-content:space-between;font-size:11px;font-weight:700;opacity:.7}
+#lvl .ll span:nth-child(2){margin-left:-30px}
 
 /* ---- разрешение микрофона ---- */
 #gate{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;
@@ -538,7 +539,7 @@ body.world #wNote{display:block}
   <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="48"/><circle class="prog" id="prog" cx="50" cy="50" r="48"/></svg>
   <button id="rec" aria-label="Запись"><span>🎤</span></button>
 </div>
-<div id="eq"><i></i><i></i><i></i><i></i><i></i></div>
+<div id="lvl" role="meter" aria-label="Громкость записи" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="lz"><i></i></div><div class="ll"><span>тихо</span><span>хорошо</span><span>громко</span></div></div>
 <div id="msg">Нажми на красную кнопку! 👆</div>
 <button id="demoBtn" class="pill demo" aria-label="Попробовать без микрофона: готовый звук птички">🐦 Попробовать без микрофона</button>
 <div id="wNote">👀 Фон — это картина твоего звука, она рисуется сама. Рисовать можно в рамках «✏️ Рисуй здесь».</div>
@@ -719,7 +720,7 @@ function silentOn(){
 function silentOff(){try{if(silent)silent.pause()}catch(e){}}
 
 function releaseStream(){
-  wRecOff();
+  wRecOff();recMeterOff();
   if(stream){try{stream.getTracks().forEach(function(t){t.stop()})}catch(e){}stream=null;}
 }
 function errText(e){
@@ -739,7 +740,7 @@ function errText(e){
 }
 function getStream(){
   releaseStream();
-  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}})
+  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})
     .then(function(s){stream=s;return s});
 }
 function pickMime(){
@@ -989,7 +990,7 @@ function startRec(){
     var mine=mr;
     mr.onstop=function(){onStopped(mine)};
     silentOff();
-    mr.start();wRecOn(s);
+    mr.start();wRecOn(s);recMeterOn(s);
     state='rec';tStart=performance.now();
     rec.classList.add('on');body.classList.add('recording');
     fx.classList.remove('show');body.classList.remove('ready');
@@ -1001,9 +1002,40 @@ function startRec(){
     showGate(errText(e));
   });
 }
+/* уровень записи: настоящий пик из микрофона (дБ) и подсказки «очень тихо» / «очень громко» */
+var REC={src:null,an:null,td:null,lastLoud:0,warn:'',warnT:0};
+var REC_QUIET=0.03,REC_LOUD=0.97,REC_WAIT=1500;
+function recMeterOn(s){
+  recMeterOff();REC.lastLoud=performance.now();REC.warn='';REC.warnT=0;
+  try{var c=ac();REC.src=c.createMediaStreamSource(s);REC.an=c.createAnalyser();REC.an.fftSize=1024;REC.src.connect(REC.an)}catch(e){REC.an=null}
+}
+function recMeterOff(){try{if(REC.src)REC.src.disconnect()}catch(e){}REC.src=null;REC.an=null}
+function recPeak(){
+  if(!REC.an)return -1;
+  var n=REC.an.fftSize,i,m=0;if(!REC.td||REC.td.length!==n)REC.td=new Float32Array(n);
+  REC.an.getFloatTimeDomainData(REC.td);for(i=0;i<n;i++){var a=REC.td[i]<0?-REC.td[i]:REC.td[i];if(a>m)m=a}
+  return m;
+}
+/* что сказать по уровню: тишина дольше 1,5 с — «очень тихо», почти до потолка — «очень громко» */
+function recJudge(pk,now){
+  if(pk>=REC_QUIET)REC.lastLoud=now;
+  if(pk>=REC_LOUD)return 'loud';
+  if(now-REC.lastLoud>REC_WAIT)return 'quiet';
+  return '';
+}
+var RECSAY={quiet:'🤫 Очень тихо — говори громче или поднеси телефон ближе',loud:'📢 Очень громко — отодвинь телефон чуть дальше',ok:'Говори! Я слушаю 🎧'};
+function recMeter(now){
+  var pk=recPeak();if(pk<0)return;
+  var db=20*Math.log10(Math.max(pk,1e-5)),w=Math.max(0,Math.min(100,(db+60)/60*100));
+  $('lvl').firstChild.firstChild.style.width=w.toFixed(1)+'%';$('lvl').setAttribute('aria-valuenow',Math.round(w));
+  var j=recJudge(pk,now);
+  if(j&&(j!==REC.warn||now-REC.warnT>2500)){REC.warn=j;REC.warnT=now;say(RECSAY[j])}
+  else if(!j&&REC.warn&&now-REC.warnT>1200){REC.warn='';say(RECSAY.ok)}
+}
 function tick(){
   var p=Math.min((performance.now()-tStart)/MAX,1);
   prog.style.strokeDashoffset=301.6*(1-p);
+  if(state==='rec')recMeter(performance.now());
   if(state==='rec')recRaf=requestAnimationFrame(tick);
 }
 function stopRec(){
@@ -1016,10 +1048,12 @@ function reset(){
   rec.classList.remove('on');body.classList.remove('recording');
   prog.style.strokeDashoffset=301.6;state='idle';
 }
+var NORM_PEAK=0.7,NORM_MAX=3,NORM_G=1;
 function normalize(buf){
   var peak=0,c,i,d;
   for(c=0;c<buf.numberOfChannels;c++){d=buf.getChannelData(c);for(i=0;i<d.length;i++){var a=d[i]<0?-d[i]:d[i];if(a>peak)peak=a}}
-  var gain=peak>0.001?Math.min(0.9/peak,6):1;
+  /* пик 0,7 — запас до потолка выхода; тихое поднимаем не больше чем в 3 раза (вместе с голосом растёт и шум) */
+  var gain=peak>0.001?Math.min(NORM_PEAK/peak,NORM_MAX):1;NORM_G=gain;
   if(gain!==1){for(c=0;c<buf.numberOfChannels;c++){d=buf.getChannelData(c);for(i=0;i<d.length;i++)d[i]*=gain}}
   return peak;
 }
@@ -1036,7 +1070,7 @@ function loadAB(ab,mime,isNew){
     applyBuf();
     if(isNew&&keep)addHist(keep,mime,buf);
     showResult();
-    return {peak:peak};
+    return {peak:peak,gain:NORM_G};
   });
 }
 function onStopped(m){
@@ -1050,7 +1084,7 @@ function onStopped(m){
     reset();
     if(r.short){if(buffer)showResult();say('Слишком коротко! Попробуй ещё 🙂');return}
     active=[];lastId='orig';refreshTiles();
-    say(r.peak<0.01?'Тихо… поднеси ближе к звуку 🔊':(hist.length>1?'Поймали! Прошлые звуки ждут в «Мои звуки» 🕘':'Поймали! Жми на картинки ✨'));
+    say(r.peak<0.01?'Тихо… поднеси ближе к звуку 🔊':r.gain>1.5?'Поймали! Запись тихая — я сделал её громче ×'+r.gain.toFixed(1).replace('.',',')+' (вместе с шумом) 🔊':(hist.length>1?'Поймали! Прошлые звуки ждут в «Мои звуки» 🕘':'Поймали! Жми на картинки ✨'));
     vib(20);
     play();
   }).catch(function(){
@@ -3785,6 +3819,7 @@ if(location.hash.indexOf('#sa-test')===0){
       state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
         ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
         live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}},
+    rec:{judge:recJudge,reset:function(t){REC.lastLoud=t},gain:function(){return NORM_G},say:RECSAY},
     clar:{ab:function(){return AB},his:function(){return {past:HIS.past.length,fut:HIS.fut.length}},tick:nowTick,commit:hisCommit},
     curves:{init:crvInit,lane:crvLane,all:crvAll,on:crvOn,key:crvKey,factor:crvFactor,strokes:function(){return CV.strokes},
       set:function(id,f){var d=CV.d[id],i;for(i=0;i<CRN;i++)d[i]=typeof f==='function'?f(i/(CRN-1)):(f==null?LANE[id].neu:f);crvChanged(false)},
