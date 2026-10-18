@@ -100,6 +100,16 @@ background:radial-gradient(circle at 15% 10%,#fff6b8 0,transparent 40%),radial-g
 .pill:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
 #share{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sund)}
 #shareArt{display:none;background:var(--vio);box-shadow:0 5px 0 var(--viod)}
+.pill.dice{flex:none;width:min(100%,360px);background:#ff8a3d;box-shadow:0 5px 0 #c85f1a}
+/* нарезка: кусочки звука, их можно таскать */
+.slb{width:min(100%,360px);box-sizing:border-box}
+.slm{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#f1ecff;border-radius:16px;padding:4px}
+.slm button{min-height:44px;border:0;border-radius:13px;background:transparent;color:var(--ink);font-size:14px;cursor:pointer}
+.slm button[aria-pressed=true]{background:var(--vio);color:#fff;box-shadow:0 3px 0 var(--viod)}
+#slStrip{display:block;width:100%;height:64px;margin-top:8px;border-radius:14px;background:#f6f2ff;touch-action:pan-y;cursor:grab}
+body.world .slm{background:rgba(255,255,255,.1)}
+body.world .slm button{color:#fff}
+body.world #slStrip{background:rgba(255,255,255,.08)}
 .sec{width:min(100%,360px);font-size:16px;margin:6px 0 -4px;padding-left:4px;opacity:.85}
 .tip{font-size:13px;opacity:.8;text-align:center;margin-top:-2px}
 .hist{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:min(100%,360px)}
@@ -170,6 +180,15 @@ body.playing .t.sel .em{animation-duration:calc(var(--du,1.8s)*.4)}
 .t[data-id=chorus]{--c:#c5e86c;--d:#98b83f;--an:a-dance;--du:1.4s}
 .t[data-id=retro]{--c:#9ee6e1;--d:#5fb3ad;--an:a-pix;--du:1.2s}
 .t[data-id=parrot]{--c:#06d6a0;--d:#04a57a;--an:a-bob;--du:1.2s}
+.t[data-id=pan]{--c:#a0c4ff;--d:#6f95d6;--an:a-swim;--du:1.6s}
+.t[data-id=flange]{--c:#90e0ef;--d:#4fb3c7;--an:a-float;--du:2.6s}
+.t[data-id=phaser]{--c:#ffc6ff;--d:#d38fd3;--an:a-glow;--du:2.4s}
+.t[data-id=tape]{--c:#d4a373;--d:#a5763f;--an:a-spin;--du:3.2s}
+.t[data-id=slow]{--c:#b5e48c;--d:#83b55a;--an:a-stomp;--du:3s}
+.t[data-id=ring]{--c:#ffd166;--d:#d6a630;--an:a-shake;--du:1.4s}
+.t[data-id=space]{--c:#5a4fcf;--d:#3a2f9f;--an:a-glow;--du:3s}
+.t[data-id=wah]{--c:#fff275;--d:#d1c43c;--an:a-bob;--du:1s}
+.t[data-id=space] .pc{background:#fff;color:var(--ink)}
 @keyframes a-ear{0%,100%{transform:rotate(0)}30%{transform:rotate(-12deg)}60%{transform:rotate(9deg)}}
 @keyframes a-echo{0%,100%{transform:scale(1)}15%{transform:scale(1.2)}30%{transform:scale(1)}45%{transform:scale(1.1)}60%{transform:scale(1)}72%{transform:scale(1.04)}}
 @keyframes a-glow{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(255,255,255,0))}50%{transform:scale(1.08);filter:drop-shadow(0 0 7px #fff)}}
@@ -497,8 +516,23 @@ body.world #echoBox{display:flex}
   <div class="hist" id="hist"></div>
   <div class="sec">🪄 Выбери волшебство</div>
   <button class="sw" id="multi" role="switch" aria-checked="false"><span class="kn"></span><span class="sl">🎛️ Микс эффектов</span><small id="multiTxt">смешай до 3 эффектов сразу</small></button>
+  <button id="fxDice" class="pill dice" aria-label="Случайные эффекты">🎲 Случайное волшебство</button>
   <div class="grid" id="grid"></div>
   <div class="tip">👆 Жми ещё — сильнее: 25 → 50 → 100% → выкл</div>
+  <div class="sec">✂️ Нарезка</div>
+  <div class="knob slb" id="slBox">
+    <div class="slm" role="group" aria-label="Когда резать">
+      <button id="slPre" aria-pressed="true">✂️ до эффектов</button><button id="slPost" aria-pressed="false">✂️ после эффектов</button>
+    </div>
+    <canvas id="slStrip" aria-label="Кусочки звука: перетащи кусочек на новое место, коснись — играть с него"></canvas>
+    <div class="ntools">
+      <button class="nb" id="slDice" aria-label="Порезать и перемешать">🎲<small>перемешать</small></button>
+      <button class="nb" id="slLess" aria-label="Меньше кусочков">➖<small>меньше</small></button>
+      <button class="nb" id="slMore" aria-label="Больше кусочков">➕<small>больше</small></button>
+      <button class="nb" id="slReset" aria-label="Кусочки по порядку">↺<small>по порядку</small></button>
+    </div>
+    <div class="cap" id="slCap">👆 Перетащи кусочек на новое место · коснись — играть с него</div>
+  </div>
   <div id="echoBox" class="off">
     <div class="sec">🎨 Холст эха</div>
     <button class="sw" id="artistSw" role="switch" aria-checked="false"><span class="kn"></span><span class="sl">🖌️ Эхо рисую я</span><small id="artistTxt">эхо зазвучит там, где краска</small></button>
@@ -513,6 +547,7 @@ body.world #echoBox{display:flex}
   </div>
   <div class="sec">🎚️ Настрой звук</div>
   <div class="tools">
+    <button id="toolDice" class="pill dice" aria-label="Случайные крутилки">🎲 Покрути за меня</button>
     <div class="knob" id="mixBox"><div class="kt"><span>💧 Сухо — мокро</span><b id="mixTxt">мокро: 100%</b></div><div class="kr"><span>🏜️</span><input class="rng" id="mix" type="range" min="0" max="100" value="100" aria-label="Сухо — мокро: сколько эффекта слышно"><span>🌊</span></div></div>
     <div class="knob"><div class="kt"><span>🔊 Громкость</span><b id="volTxt">100%</b></div><div class="kr"><span>🔈</span><input class="rng" id="vol" type="range" min="0" max="200" value="100" aria-label="Громкость"><span>🔊</span></div></div>
     <div class="knob" id="tempBox"><div class="kt"><span>🌡️ Температура</span><b id="tempTxt">обычный 🙂</b></div><div class="kr"><span>❄️</span><input class="rng" id="temp" type="range" min="-100" max="100" value="0" aria-label="Температура звука"><span>🔥</span></div></div>
@@ -565,7 +600,9 @@ var EFFECTS=[
   {id:'orig',e:'👂',n:'Как было'},{id:'echo',e:'🏔️',n:'Эхо'},{id:'cave',e:'🏰',n:'Замок'},{id:'warp',e:'🌀',n:'Варп'},
   {id:'low',e:'🐘',n:'Слон'},{id:'high',e:'🐭',n:'Мышка'},{id:'rev',e:'⏪',n:'Задом наперёд'},{id:'robot',e:'🤖',n:'Робот'},
   {id:'trem',e:'🚁',n:'Вертолёт'},{id:'ufo',e:'👽',n:'НЛО'},{id:'radio',e:'📻',n:'Рация'},{id:'water',e:'🐠',n:'Под водой'},
-  {id:'rock',e:'🎸',n:'Рок'},{id:'chorus',e:'👯',n:'Хор'},{id:'retro',e:'👾',n:'Ретро-игра'},{id:'parrot',e:'🦜',n:'Попугай'}
+  {id:'rock',e:'🎸',n:'Рок'},{id:'chorus',e:'👯',n:'Хор'},{id:'retro',e:'👾',n:'Ретро-игра'},{id:'parrot',e:'🦜',n:'Попугай'},
+  {id:'pan',e:'🌪️',n:'Вихрь'},{id:'flange',e:'✈️',n:'Самолёт'},{id:'phaser',e:'🌈',n:'Радуга'},{id:'tape',e:'📼',n:'Кассета'},
+  {id:'slow',e:'🐌',n:'Улитка'},{id:'ring',e:'🔔',n:'Колокол'},{id:'space',e:'🌌',n:'Космос'},{id:'wah',e:'🦆',n:'Утка'}
 ];
 var NAME={},EMO={};EFFECTS.forEach(function(f){NAME[f.id]=f.n;EMO[f.id]=f.e});
 var LV=[0,0.25,0.5,1],PCT=['','25%','50%','100%'],POW=['','чуть-чуть 🔸','средне 🔶','на полную! 💥'];
@@ -695,7 +732,15 @@ var HINT={
   rock:'🎸 Рок: звук рычит, как электрогитара',
   chorus:'👯 Хор: как будто вас много',
   retro:'👾 Ретро-игра: звук как в старой приставке',
-  parrot:'🦜 Попугай: повторяет кусочки звука'
+  parrot:'🦜 Попугай: повторяет кусочки звука',
+  pan:'🌪️ Вихрь: звук летает из уха в ухо (лучше в наушниках)',
+  flange:'✈️ Самолёт: звук гудит, как реактивный самолёт',
+  phaser:'🌈 Радуга: звук переливается',
+  tape:'📼 Кассета: как старая плёнка — плывёт и шуршит',
+  slow:'🐌 Улитка: медленнее, но голос тот же',
+  ring:'🔔 Колокол: звук звенит, как железный',
+  space:'🌌 Космос: звук улетает в звёзды и звенит выше',
+  wah:'🦆 Утка: звук крякает «уа-уа»'
 };
 var FACT={
   orig:'Так выглядит твой звук без эффектов. Запомни картинку!',
@@ -713,7 +758,15 @@ var FACT={
   rock:'Верхушки волны срезаны и стали «квадратными», поэтому звук рычит.',
   chorus:'Звук сложился из нескольких копий, они чуть-чуть отстают друг от друга.',
   retro:'Волна стала ступеньками: точек меньше, как у пиксельной картинки.',
-  parrot:'Маленькие кусочки звука повторяются, как будто попугай дразнится.'
+  parrot:'Маленькие кусочки звука повторяются, как будто попугай дразнится.',
+  pan:'Звук по очереди становится громче то в левом, то в правом ухе.',
+  flange:'Звук смешан со своей копией, которая чуть-чуть отстаёт, и отставание плавно меняется.',
+  phaser:'В спектре бегают провалы: какие-то «ноты» по очереди пропадают.',
+  tape:'Высота звука медленно плывёт, а самые высокие звуки срезаны, как на старой плёнке.',
+  slow:'Волна стала длиннее, а высота осталась прежней: кусочки звука растянуты.',
+  ring:'Звук умножен на ровный писк, поэтому появились новые звенящие ноты.',
+  space:'К звуку добавлено долгое эхо, звучащее на октаву выше.',
+  wah:'Спектр подсвечен в одном месте, и это место бегает вверх-вниз.'
 };
 var scopeCv=$('scope'),specCv=$('spec'),factEl=$('fact');
 var vizAn=null,tdata=null,fdata=null,vizOn={wave:false,spec:false,pic:false,notes:false};
@@ -982,14 +1035,17 @@ function drawWave(p){
   }
   g.globalAlpha=1;
   if(SES&&p>=0){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(10+p*(w-20)-1.5,2,3,h-4)}
+  slDraw();
 }
 window.addEventListener('resize',function(){if(buffer)drawWave(playFrac);drawViz()});
 
 /* ---------- звуковой граф: до 3 эффектов, у каждого сила 25/50/100% ---------- */
 function rateOf(){var r=1,s;if((s=S('low')))r*=Math.pow(0.6,s);if((s=S('high')))r*=Math.pow(1.8,s);if((s=S('ufo')))r*=Math.pow(1.25,s);return r}
 function caveLen(s){return 0.8+2.7*s}
+function spaceLen(s){return 2+2.5*s}
 function tailOf(){
   var t=0.3,s;if((s=S('echo')))t+=1+2.5*s;if((s=S('cave')))t+=caveLen(s);if(S('warp'))t+=0.4;if(S('chorus'))t+=0.1;if(AR.on)t+=artistExtra();
+  if(S('flange'))t+=0.1;if(S('tape'))t+=0.1;if((s=S('space')))t+=spaceLen(s);
   /* «сухо — мокро»: исходная запись может оказаться длиннее обработанной (Мышка) */
   if(MIX<1)t=Math.max(t,buffer.duration-srcBuf().duration/rateOf());
   return t;
@@ -1052,7 +1108,39 @@ function stutter(b,s){
   }
   return out;
 }
-var prepCache={k:'',b:null},baseCache={k:'',b:null};
+/* улитка: медленнее без смены высоты — кусочки по 50 мс накладываются внахлёст (WSOLA): каждый следующий
+   ищется рядом с нужным местом так, чтобы волна продолжалась без провала */
+function stretch(b,s){
+  var f=1+s,sr=b.sampleRate,N=Math.round(sr*0.05)&~1,H=N>>1,L=b.length,M=Math.ceil(L*f),out=newBuf(b,M),
+      win=new Float32Array(N),D=Math.round(sr*0.008),x0=b.getChannelData(0),pos=[],prev=0,i,k,c;
+  for(i=0;i<N;i++){var w=Math.sin(Math.PI*i/N);win[i]=w*w}
+  for(k=0;k*H<M;k++){
+    var ideal=Math.round(k*H/f);
+    if(!k){pos.push(0);continue}
+    var nat=prev+H,best=0,bv=-Infinity,d,j;
+    for(d=-D;d<=D;d+=2){
+      var st=ideal+d;if(st<0||st+N>L)continue;
+      var cs=0;for(j=0;j<H&&nat+j<L;j+=4)cs+=x0[nat+j]*x0[st+j];
+      if(cs>bv){bv=cs;best=d}
+    }
+    prev=Math.max(0,Math.min(L-1,ideal+best));pos.push(prev);
+  }
+  for(c=0;c<b.numberOfChannels;c++){
+    var x=b.getChannelData(c),y=out.getChannelData(c);
+    for(k=0;k<pos.length;k++){var o=k*H,p=pos[k];for(i=0;i<N&&o+i<M&&p+i<L;i++)y[o+i]+=x[p+i]*win[i]}
+  }
+  return out;
+}
+/* космос: тот же звук на октаву выше и той же длины — он уходит в долгое эхо */
+var octCache={s:null,b:null};
+function octBuf(b){
+  if(octCache.s===b)return octCache.b;
+  var out=newBuf(b),c;
+  for(c=0;c<b.numberOfChannels;c++)pshiftInto(b.getChannelData(c),out.getChannelData(c),0,b.length,2,b.sampleRate);
+  octCache={s:b,b:out};
+  return out;
+}
+var prepCache={k:'',b:null},baseCache={k:'',b:null},cutCache={k:'',b:null};
 /* запись с передвинутыми нотами (без правок — сама запись) */
 function baseBuf(){
   var nk=noteKey();if(!nk)return buffer;
@@ -1060,13 +1148,21 @@ function baseBuf(){
   if(baseCache.k!==k||!baseCache.b)baseCache={k:k,b:applyNotes(buffer)};
   return baseCache.b;
 }
+/* запись, порезанная до эффектов (без нарезки — та же, что baseBuf) */
+function cutBuf(){
+  var sk=slKey('pre');if(!sk)return baseBuf();
+  var k=gen+noteKey()+sk;
+  if(cutCache.k!==k||!cutCache.b)cutCache={k:k,b:sliceBuf(baseBuf())};
+  return cutCache.b;
+}
 function srcBuf(){
-  var k=gen+':'+(cleanOn?1:0)+':'+lvlOf('parrot')+lvlOf('retro')+lvlOf('rev')+noteKey();
+  var k=gen+':'+(cleanOn?1:0)+':'+lvlOf('parrot')+lvlOf('retro')+lvlOf('rev')+lvlOf('slow')+noteKey()+slKey('pre');
   if(prepCache.k===k&&prepCache.b)return prepCache.b;
-  var b=baseBuf(),s;
+  var b=cutBuf(),s;
   if((s=S('parrot')))b=stutter(b,s);
   if((s=S('retro')))b=crush(b,s);
   if((s=S('rev')))b=revChunks(b,s);
+  if((s=S('slow')))b=stretch(b,s);
   prepCache={k:k,b:b};
   return b;
 }
@@ -1083,7 +1179,8 @@ function makeIR(c,len){
   /* повтор по кругу строит граф на каждый проход — одинаковый «зал» не пересчитываем */
   if(irCache[ik])return irCache[ik];
   var b=c.createBuffer(2,n,sr),seed=12345,ch,i;
-  irCache={};irCache[ik]=b;
+  if(Object.keys(irCache).length>=4)irCache={};
+  irCache[ik]=b;
   for(ch=0;ch<2;ch++){
     var d=b.getChannelData(ch);
     for(i=0;i<n;i++){seed=(seed*16807)%2147483647;d[i]=(seed/1073741823.5-1)*Math.pow(1-i/n,2.5)}
@@ -1114,6 +1211,8 @@ function build(c,dest,o){
   if((s=S('warp')))vibr(2.5,0.35*s);
   if((s=S('ufo')))vibr(7,0.3*s);
   if((s=S('water')))vibr(1.2,0.03*s);
+  /* кассета: плёнка медленно плывёт (0,6 Гц) и мелко дрожит (9 Гц) */
+  if((s=S('tape'))){vibr(0.6,0.012*s);vibr(9,0.003*s)}
   var cur=src,taps=[],ap=artistPlan();
   /* Художник звука: эха — отдельные проигрыши записи (своя задержка, высота, яркость, панорама, громкость);
      вместе с оригиналом они входят в общую цепочку, поэтому остальные эффекты действуют и на них */
@@ -1161,16 +1260,61 @@ function build(c,dest,o){
   if((s=S('cave')))par(1-0.3*s,0.35+0.6*s,function(inN){
     var cv=node(c.createConvolver());cv.buffer=makeIR(c,caveLen(s));inN.connect(cv);return cv;
   });
+  if((s=S('tape'))){seq(filt('lowpass',7000*Math.pow(0.45,s),0.8));seq(node(shaper(c,1+1.5*s)))}
+  /* колокол: звук умножается на ровный тон — появляются звенящие «железные» ноты */
+  if((s=S('ring')))par(1-0.6*s,0.9+0.6*s,function(inN){
+    var rg=gain(0),o4=osc('sine',300+260*s);o4.connect(rg.gain);inN.connect(rg);return rg;
+  });
+  /* самолёт: копия звука отстаёт на 1–5 мс, отставание плавно гуляет, часть возвращается назад */
+  if((s=S('flange')))par(1,0.8,function(inN){
+    var dl=node(c.createDelay(0.05)),fb=gain(0.35+0.45*s),l=osc('sine',0.25+0.25*s),a=gain(0.0022);
+    dl.delayTime.value=0.003;l.connect(a);a.connect(dl.delayTime);
+    inN.connect(dl);dl.connect(fb);fb.connect(dl);return dl;
+  });
+  /* радуга: четыре фазовых фильтра, их частота плавает — в спектре бегают провалы */
+  if((s=S('phaser')))par(1,0.6+0.4*s,function(inN){
+    var l=osc('sine',0.3+0.6*s),a=gain(500+300*s),last=inN;l.connect(a);
+    [0,1,2,3].forEach(function(){var ap2=filt('allpass',900,0.7);a.connect(ap2.frequency);last.connect(ap2);last=ap2});
+    return last;
+  });
+  /* утка: узкий фильтр бегает вверх-вниз — «уа-уа» */
+  if((s=S('wah')))par(1-0.6*s,1.8*s,function(inN){
+    var bp=filt('bandpass',1000,3+3*s),l=osc('sine',1.5+1.5*s),a=gain(700);l.connect(a);a.connect(bp.frequency);
+    inN.connect(bp);return bp;
+  });
+  /* космос: звук октавой выше уходит в долгое эхо вместе с обычным */
+  if((s=S('space'))){
+    var sIn=cur,sOut=gain(1),cvS=node(c.createConvolver());cvS.buffer=makeIR(c,spaceLen(s));
+    var ss=c.createBufferSource();ss.buffer=o&&o.rev?revOf(octBuf(srcBuf())):octBuf(srcBuf());ss.playbackRate.value=rate;
+    vibs.forEach(function(v){v.connect(ss.playbackRate)});
+    var sg=gain(0.5*s),ig=gain(0.35),wv=gain(0.45+0.45*s),hp=filt('highpass',400);
+    ss.connect(hp);hp.connect(sg);sg.connect(cvS);sIn.connect(ig);ig.connect(cvS);cvS.connect(wv);wv.connect(sOut);sIn.connect(sOut);
+    cur=sOut;taps.push({s:ss,when:0});
+  }
+  /* вихрь: звук летает из уха в ухо */
+  if((s=S('pan'))&&c.createStereoPanner){
+    var pz=node(c.createStereoPanner()),lp=osc('sine',0.35+0.9*s),pa=gain(Math.min(1,0.5+0.5*s));pz.pan.value=0;
+    lp.connect(pa);pa.connect(pz.pan);seq(pz);
+  }
   /* сухо — мокро: обработанный звук тише, рядом звучит исходная запись без эффектов */
   var wg=null,dg=null;
   if(MIX<1){
     wg=gain(MIX);cur.connect(wg);wg.connect(master);
-    var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(baseBuf()):baseBuf();
+    var ds=c.createBufferSource();ds.buffer=o&&o.rev?revOf(cutBuf()):cutBuf();
     if(o&&o.semis)ds.playbackRate.value=Math.pow(2,o.semis/12);
     dg=gain(1-MIX);ds.connect(dg);dg.connect(master);taps.push({s:ds,when:0});
   }else cur.connect(master);
   return {src:src,master:master,nodes:nodes,oscs:oscs,rate:rate,tail:tailOf(),taps:taps,wg:wg,dg:dg};
 }
+/* нарезка после эффектов: играет уже готовый, обработанный и порезанный звук */
+function buildPost(c,dest,o){
+  var master=c.createGain();master.connect(dest);
+  var src=c.createBufferSource(),pb=PB.b;src.buffer=o&&o.rev?revOf(pb):pb;
+  var rate=o&&o.semis?Math.pow(2,o.semis/12):1;src.playbackRate.value=rate;src.connect(master);
+  return {src:src,master:master,nodes:[master],oscs:[],rate:rate,tail:0.05,taps:[],wg:null,dg:null};
+}
+/* вихрю нужны два уха — тогда и сохраняем в стерео */
+function outCh(b){return S('pan')?2:b.numberOfChannels}
 
 /* ---------- воспроизведение ---------- */
 function setPlayUI(on){
@@ -1184,7 +1328,7 @@ var REPM={once:['➡️','Один раз'],loop:['🔁','По кругу'],pp:[
 var REPSAY={once:'➡️ Играет один раз',loop:'🔁 По кругу, пока не нажмёшь ⏹',pp:'↔️ Туда-сюда: вперёд, потом задом наперёд',rnd:'🔀 Каждый раз по-новому: то выше, то ниже, то задом наперёд'};
 var RNDSEMI=[-5,-3,0,2,4,7],LOOP_TAIL=2.5,LOOP_LIVE=6;
 function stopPlay(){
-  cancelAnimationFrame(playRaf);vizAn=null;playT=-1;playFrac=-1;drawViz();
+  PEND=0;cancelAnimationFrame(playRaf);vizAn=null;playT=-1;playFrac=-1;drawViz();
   if(SES){var s=SES;SES=null;s.end()}
   setPlayUI(false);
   if(buffer)drawWave(-1);
@@ -1196,9 +1340,17 @@ function startSrc(s,t,o){
   s.start(t,(o.rev?1-o.b:o.a)*B,(o.b-o.a)*B);
 }
 /* from — доля звука, с которой начать (касание волны) */
+var PEND=0;
 function play(from){
   if(!buffer)return;
   stopPlay();
+  /* нарезка после эффектов: сначала звук обрабатывается и режется целиком (доли секунды), потом играет */
+  if(slAfter()&&!postReady()){
+    var tk=PEND=Date.now()+Math.random();
+    say('✂️ Режу звук…');
+    postGet().then(function(){if(PEND===tk)play(from)}).catch(function(){if(PEND===tk){PEND=0;say('Не вышло порезать 😕')}});
+    return;
+  }
   var c=ac();silentOn();
   var an=c.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.6;
   var os=outStage(c,c.destination,VOL,TEMP);an.connect(os.i);curOut=os;
@@ -1219,7 +1371,7 @@ function play(from){
     return o;
   }
   function pass(t0,o){
-    var g=build(c,an,o);
+    var g=slAfter()&&PB.b?buildPost(c,an,o):build(c,an,o);
     g.oscs.forEach(function(x){x.start(t0)});
     startSrc(g.src,t0,o);
     g.taps.forEach(function(t){startSrc(t.s,t0+t.when,o)});
@@ -1337,14 +1489,14 @@ var OC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
 if(!OC)shareBtn.style.display='none';
 function artistKey(){return AR.on?(':a'+artistCanvas().ver+'.'+artistSeed()+'.'+AR.influence+'.'+AR.blur):''}
 function mixKey(){return MIX<1?':m'+MIX.toFixed(2):''}
-function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()}
-function renderWav(vol){
+function key(){return gen+':'+fxKey()+':'+VOL.toFixed(2)+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post')}
+/* звук целиком без громкости и температуры — для нарезки после эффектов */
+function postRawKey(){return gen+':'+fxKey()+':'+(cleanOn?1:0)+artistKey()+mixKey()+noteKey()}
+function postKey(){return postRawKey()+slKey('post')}
+function offline(ch,len,sr,vol,make){
   return new Promise(function(res,rej){
     try{
-      var b=srcBuf(),sr=b.sampleRate,ch=b.numberOfChannels;
-      var len=Math.ceil((b.duration/rateOf()+tailOf())*sr);
-      var oc=new OC(ch,len,sr);
-      var os=outStage(oc,oc.destination,vol===undefined?VOL:vol,TEMP),g=build(oc,os.i);
+      var oc=new OC(ch,len,sr),dest=vol===null?oc.destination:outStage(oc,oc.destination,vol===undefined?VOL:vol,TEMP).i,g=make(oc,dest);
       g.oscs.forEach(function(o){o.start(0)});
       g.src.start(0);
       g.taps.forEach(function(t){t.s.start(t.when)});
@@ -1353,6 +1505,33 @@ function renderWav(vol){
       if(p&&p.then)p.then(res,rej);
     }catch(e){rej(e)}
   });
+}
+function renderWav(vol){
+  if(slAfter())return postGet().then(function(pb){
+    return offline(pb.numberOfChannels,pb.length+Math.ceil(0.05*pb.sampleRate),pb.sampleRate,vol,buildPost);
+  });
+  var b=srcBuf(),sr=b.sampleRate;
+  return offline(outCh(b),Math.ceil((b.duration/rateOf()+tailOf())*sr),sr,vol,function(c,d){return build(c,d)});
+}
+/* нарезка после эффектов: звук со всеми эффектами и хвостами, порезанный и перемешанный */
+var PB={k:'',b:null,p:null,r:null,rk:''};
+/* обработанный звук уже есть, поменялся только порядок кусочков — перерезать сразу, без новой обработки */
+function postSync(){
+  var k=postKey();
+  if(PB.k!==k&&PB.r&&PB.rk===postRawKey())PB={k:k,b:sliceBuf(PB.r),p:null,r:PB.r,rk:PB.rk};
+}
+function postReady(){postSync();return PB.k===postKey()&&!!PB.b}
+function postGet(){
+  postSync();
+  var k=postKey(),rk=postRawKey();
+  if(PB.k===k&&PB.b)return Promise.resolve(PB.b);
+  if(PB.k===k&&PB.p)return PB.p;
+  var b=srcBuf(),sr=b.sampleRate;
+  PB={k:k,b:null,p:null,r:null,rk:''};
+  PB.p=offline(outCh(b),Math.ceil((b.duration/rateOf()+tailOf())*sr),sr,null,function(c,d){return build(c,d)}).then(function(rb){
+    var cb=sliceBuf(rb);if(PB.k===k){PB.b=cb;PB.r=rb;PB.rk=rk;slDraw()}return cb;
+  });
+  return PB.p;
 }
 function encodeWav(ab){
   var ch=ab.numberOfChannels,len=ab.length,sr=ab.sampleRate,size=len*ch*2;
@@ -1459,7 +1638,7 @@ mixEl.onchange=function(){
   mixUI();
   say(MIX>=1?'🌊 Мокро: слышно только волшебство':(MIX<=0?'🏜️ Сухо: звук без эффектов':'💧 Смешали: '+Math.round(MIX*100)+'% волшебства и '+Math.round((1-MIX)*100)+'% как было'));
   /* в текущем графе нет исходного звука (было 100%) — перезапуск */
-  if(SES&&MIX<1&&!SES.mix.length)play();
+  if(SES&&(slAfter()||MIX<1&&!SES.mix.length))play();
   prerender();needView();
 };
 var tempEl=$('temp');
@@ -1637,7 +1816,7 @@ function keyOfRuns(list){
 }
 function needView(){
   if(!buffer||!OC||!vizOn.pic)return;
-  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey();
+  var k=gen+':'+fxKey()+':'+(cleanOn?1:0)+':'+TEMP.toFixed(2)+artistKey()+mixKey()+noteKey()+slKey('pre')+slKey('post');
   if(view&&view.k===k){drawViz();return}
   if(viewBusy===k)return;
   viewBusy=k;
@@ -2085,6 +2264,14 @@ function saBrush(fx){
   if(s('cave')){b.cave={len:0.8+2.7*s('cave'),mix:0.35+0.6*s('cave')};b.glow=1+0.9*b.cave.mix;b.blur=Math.max(b.blur,0.6*s('cave'))}
   if(s('parrot'))b.dash=0.12;
   if(s('rev')){var v=s('rev');b.revChunk=v>=1?0:(v<0.4?0.22:0.6);b.hueFlip=true}
+  if(s('pan'))b.pulse={hz:0.35+0.9*s('pan'),amp:0.3*s('pan')};
+  if(s('flange'))b.copies=[0.003,0.0055];
+  if(s('phaser'))b.wobble.push({hz:0.3+0.6*s('phaser'),amp:0.04*s('phaser')});
+  if(s('tape')){b.wobble.push({hz:0.6,amp:0.012*s('tape')});b.sat-=35*s('tape')}
+  if(s('slow'))b.thick*=1+0.4*s('slow');
+  if(s('ring'))b.square=true;
+  if(s('space')){b.glow=Math.max(b.glow,1+0.9*s('space'));b.blur=Math.max(b.blur,0.5*s('space'))}
+  if(s('wah'))b.wobble.push({hz:1.5+1.5*s('wah'),amp:0.05*s('wah')});
   return b;
 }
 /*SA-CORE-END*/
@@ -2746,17 +2933,174 @@ function ecSync(){
   }
 }
 
-/* ---------- 🎲 Сюрприз: всё сразу случайно — эффекты и их сила, сухо–мокро, температура; в мире ещё картина эха ---------- */
-var SURP_AVOID={orig:1};
-function surprise(rnd){
+/* ---------- ✂️ Нарезка: звук режется на равные кусочки — их можно перемешать, перетащить, перевернуть ----------
+   «до эффектов» — режется запись, эффекты звучат поверх (хвосты эха тянутся через стыки);
+   «после эффектов» — режется уже обработанный звук, и хвосты рвутся вместе с кусочками */
+var SL={g:-1,c:-1,n:6,order:null,rev:null,mode:'pre',drag:null,pk:null,pks:null,pkn:0};
+function slIdent(){SL.order=[];SL.rev=[];for(var i=0;i<SL.n;i++){SL.order.push(i);SL.rev.push(false)}}
+function slFresh(){if(SL.g!==gen||SL.c!==(cleanOn?1:0)||!SL.order){SL.g=gen;SL.c=cleanOn?1:0;slIdent()}}
+function slOn(){
+  if(SL.g!==gen||SL.c!==(cleanOn?1:0)||!SL.order)return false;
+  for(var i=0;i<SL.n;i++)if(SL.order[i]!==i||SL.rev[i])return true;
+  return false;
+}
+function slKey(m){return slOn()&&SL.mode===m?':s'+m+SL.n+'.'+SL.order.join(',')+'.'+SL.rev.map(function(r){return r?1:0}).join(''):''}
+function slAfter(){return slOn()&&SL.mode==='post'}
+/* кусочек k — отсчёты [L·k/n, L·(k+1)/n); длина звука не меняется; стыки плавные (6 мс), соседи по порядку — без стыка */
+function sliceBuf(b){
+  var L=b.length,n=SL.n,out=newBuf(b),F=Math.max(1,Math.round(b.sampleRate*0.006)),c,j,i;
+  function bd(i){return Math.round(L*i/n)}
+  function joined(j){return j>0&&j<n&&!SL.rev[j]&&!SL.rev[j-1]&&SL.order[j]===SL.order[j-1]+1}
+  for(c=0;c<b.numberOfChannels;c++){
+    var x=b.getChannelData(c),y=out.getChannelData(c),o=0;
+    for(j=0;j<n;j++){
+      var k=SL.order[j],s0=bd(k),m=bd(k+1)-s0,rv=SL.rev[j],fi=j>0&&!joined(j),fo=j<n-1&&!joined(j+1);
+      for(i=0;i<m;i++){
+        var g=1;if(fi&&i<F)g=i/F;if(fo&&m-1-i<F)g=Math.min(g,(m-1-i)/F);
+        y[o+i]=x[rv?s0+m-1-i:s0+i]*g;
+      }
+      o+=m;
+    }
+  }
+  return out;
+}
+function slChanged(){prepCache.k='';cache={key:'',blob:null};view=null;needView();slUI()}
+function slUI(){
+  $('slPre').setAttribute('aria-pressed',SL.mode==='pre'?'true':'false');
+  $('slPost').setAttribute('aria-pressed',SL.mode==='post'?'true':'false');
+  slDraw();
+}
+/* высоты кусочков (по 12 столбиков) — из записи, а после эффектов — из обработанного звука */
+function slPeaks(b){
+  if(SL.pks===b&&SL.pkn===SL.n)return SL.pk;
+  var d=b.getChannelData(0),B=12,M=SL.n*B,pk=new Float32Array(M),mx=1e-4,i,j;
+  for(i=0;i<M;i++){
+    var a=Math.round(d.length*i/M),e=Math.round(d.length*(i+1)/M),m=0;
+    for(j=a;j<e;j+=4){var v=d[j]<0?-d[j]:d[j];if(v>m)m=v}
+    pk[i]=m;if(m>mx)mx=m;
+  }
+  for(i=0;i<M;i++)pk[i]/=mx;
+  SL.pk=pk;SL.pks=b;SL.pkn=SL.n;
+  return pk;
+}
+var slCv=$('slStrip');
+function slDraw(){
+  if(!SL||!buffer)return;
+  var f=fit(slCv);if(!f)return;
+  slFresh();
+  var g=f.g,w=f.w,h=f.h,n=SL.n,bw=w/n,B=12,j,i,
+      pk=slPeaks(SL.mode==='post'&&PB.r&&PB.rk===postRawKey()?PB.r:baseBuf());
+  g.textAlign='center';g.font='700 12px sans-serif';
+  for(j=0;j<n;j++){
+    var k=SL.order[j],x=j*bw,up=SL.drag&&SL.drag.moved&&SL.drag.j===j,y0=up?1:6,bh0=h-(up?2:12);
+    g.fillStyle='hsl('+Math.round(k/n*300)+',85%,'+(W.on?'46%':'72%')+')';
+    g.beginPath();if(g.roundRect)g.roundRect(x+2,y0,bw-4,bh0,9);else g.rect(x+2,y0,bw-4,bh0);g.fill();
+    if(up){g.strokeStyle=W.on?'#fff':'#3b2a6b';g.lineWidth=3;g.stroke()}
+    g.fillStyle=W.on?'rgba(255,255,255,.85)':'rgba(40,20,90,.5)';
+    for(i=0;i<B;i++){
+      var v=pk[k*B+(SL.rev[j]?B-1-i:i)],bh=Math.max(2,v*(bh0-24));
+      g.fillRect(x+5+(i+0.5)*(bw-10)/B-1,y0+18+(bh0-24-bh)/2,2,bh);
+    }
+    g.fillStyle=W.on?'#fff':'#2a1a5e';g.fillText((SL.rev[j]?'⏪':'')+(k+1),x+bw/2,y0+13);
+  }
+  if(SES&&playFrac>=0){g.fillStyle=W.on?'#fff':'#3b2a6b';g.fillRect(playFrac*w-1.5,0,3,h)}
+}
+function slPos(e){var r=slCv.getBoundingClientRect();return Math.max(0,Math.min(SL.n-1,Math.floor((e.clientX-r.left)/r.width*SL.n)))}
+slCv.addEventListener('pointerdown',function(e){if(!buffer)return;slFresh();SL.drag={j:slPos(e),x:e.clientX,moved:false}});
+slCv.addEventListener('pointermove',function(e){
+  var d=SL.drag;if(!d)return;
+  if(!d.moved&&Math.abs(e.clientX-d.x)>8){d.moved=true;try{slCv.setPointerCapture(e.pointerId)}catch(x){}slDraw()}
+  if(!d.moved)return;
+  var t=slPos(e);
+  if(t!==d.j){
+    var a=SL.order.splice(d.j,1)[0],r=SL.rev.splice(d.j,1)[0];SL.order.splice(t,0,a);SL.rev.splice(t,0,r);
+    d.j=t;vib(5);slDraw();
+  }
+});
+slCv.addEventListener('pointerup',function(){
+  var d=SL.drag;if(!d)return;SL.drag=null;vib(8);
+  if(d.moved){
+    slChanged();
+    say(slOn()?'✂️ Кусочек переехал! Слушай, что получилось':'↺ Кусочки снова по порядку');
+    play();return;
+  }
+  say('▶ Играю с кусочка '+(SL.order[d.j]+1));
+  play(d.j/SL.n);
+});
+slCv.addEventListener('pointercancel',function(){SL.drag=null;slDraw()});
+/* 🎲 порезать и перемешать: другой порядок, а некоторые кусочки задом наперёд */
+function slDice(rnd,quiet){
+  if(!buffer)return false;
+  var r=rnd||Math.random,n=SL.n,i,same;
+  slFresh();
+  do{
+    slIdent();
+    for(i=n-1;i>0;i--){var j=Math.floor(r()*(i+1)),t=SL.order[i];SL.order[i]=SL.order[j];SL.order[j]=t}
+    for(i=0;i<n;i++)SL.rev[i]=r()<0.25;
+    same=!slOn();
+  }while(same);
+  slChanged();
+  if(!quiet){say('🎲✂️ Порезал на '+n+' '+slWord(n)+' и перемешал!');play()}
+  return true;
+}
+function slWord(n){return n%10===1&&n%100!==11?'кусочек':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?'кусочка':'кусочков')}
+function slMode(m){
+  SL.mode=m;
+  if(!slOn())slDice(null,true);else slChanged();
+  say(m==='pre'?'✂️ Режу до эффектов: эффекты звучат поверх кусочков':'✂️ Режу после эффектов: хвосты эха тоже рвутся');
+  play();
+}
+$('slPre').onclick=function(){if(buffer){vib(8);slMode('pre')}};
+$('slPost').onclick=function(){if(buffer){vib(8);slMode('post')}};
+$('slDice').onclick=function(){vib([8,20,8]);bounce($('slDice'));slDice()};
+function slCount(d){
   if(!buffer)return;
-  var r=rnd||Math.random,ids=EFFECTS.map(function(f){return f.id}).filter(function(id){return !SURP_AVOID[id]}),pick=[],n=r()<0.45?1:(r()<0.7?2:3);
+  var n=Math.max(2,Math.min(12,SL.n+d));
+  if(n===SL.n){shake($(d<0?'slLess':'slMore'));say(d<0?'Меньше двух нельзя 🙂':'Больше 12 нельзя 🙂');return}
+  vib(8);SL.n=n;slFresh();slIdent();slDice(null,true);
+  say('✂️ '+n+' '+slWord(n)+' — и снова перемешал');play();
+}
+$('slLess').onclick=function(){slCount(-1)};
+$('slMore').onclick=function(){slCount(1)};
+$('slReset').onclick=function(){if(!buffer)return;vib(8);slFresh();slIdent();slChanged();say('↺ Кусочки снова по порядку');play()};
+
+/* ---------- 🎲 случайные эффекты и случайные крутилки ---------- */
+var SURP_AVOID={orig:1};
+function fxRandom(r){
+  var ids=EFFECTS.map(function(f){return f.id}).filter(function(id){return !SURP_AVOID[id]}),pick=[],n=r()<0.45?1:(r()<0.7?2:3);
   while(pick.length<n){var id=ids[Math.floor(r()*ids.length)];if(pick.indexOf(id)<0)pick.push(id)}
   setMulti(n>1);
   active=pick.map(function(id){return {id:id,lvl:1+Math.floor(r()*3)}});lastId=pick[pick.length-1];
+}
+function fxSay(){return active.map(function(a){return EMO[a.id]+' '+PCT[a.lvl]}).join(' + ')}
+$('fxDice').onclick=function(){
+  if(!buffer)return;
+  vib([8,20,8]);bounce($('fxDice'));fxRandom(Math.random);refreshTiles();
+  say('🎲 '+fxSay());play();
+};
+function toolRandom(r){
+  MIX=r()<0.35?1:Math.round((0.3+0.65*r())*20)/20;mixUI();
+  TEMP=r()<0.25?0:Math.round((r()*1.6-0.8)*20)/20;tempEl.value=Math.round(TEMP*100);tempUI();
+}
+$('toolDice').onclick=function(){
+  if(!buffer)return;
+  vib([8,20,8]);bounce($('toolDice'));toolRandom(Math.random);
+  if(curOut){try{setTone(curOut.ls,curOut.hs,TEMP,curOut.ls.context.currentTime)}catch(e){}}
+  say('🎲 💧 '+Math.round(MIX*100)+'% волшебства · 🌡️ '+$('tempTxt').textContent);
+  needView();play();
+};
+
+/* ---------- 🎲 Сюрприз: всё сразу случайно — эффекты и их сила, сухо–мокро, температура, нарезка; в мире ещё картина эха ---------- */
+function surprise(rnd){
+  if(!buffer)return;
+  var r=rnd||Math.random;
+  fxRandom(r);
   MIX=r()<0.5?1:Math.round((0.45+0.5*r())*20)/20;mixUI();
   TEMP=r()<0.4?0:Math.round((r()*1.4-0.7)*20)/20;tempEl.value=Math.round(TEMP*100);tempUI();
   var art='';
+  /* иногда звук ещё и режется на кусочки — до или после эффектов */
+  if(r()<0.3){SL.mode=r()<0.5?'pre':'post';slDice(r,true);art+=' + ✂️ нарезка'}
+  else if(slOn()){slIdent();slChanged()}
   if(W.on&&r()<0.6){
     ecInit();var pr=ECPRE[Math.floor(r()*ECPRE.length)];
     ecPush();saPreset(artistCanvas(),pr[0]);AR.seed=(r()*4294967295)>>>0||1;AR.want=true;ecSync();ecChanged(false);art=' + картина «'+pr[1]+'»';
@@ -2764,7 +3108,7 @@ function surprise(rnd){
   /* иногда и мелодия новая — если в записи есть ровные ноты */
   if(r()<0.3&&noteDice(r,true))art+=' + новая мелодия 🎼';
   refreshTiles();
-  say('🎲 Сюрприз! '+active.map(function(a){return EMO[a.id]+' '+PCT[a.lvl]}).join(' + ')+(MIX<1?' · 💧'+Math.round(MIX*100)+'%':'')+art);
+  say('🎲 Сюрприз! '+fxSay()+(MIX<1?' · 💧'+Math.round(MIX*100)+'%':'')+art);
   play();
 }
 $('surprise').onclick=function(){vib([10,30,10]);bounce($('surprise'));burst($('surprise'));surprise()};
@@ -3027,7 +3371,11 @@ if(location.hash.indexOf('#sa-test')===0){
       mix:function(v){if(v!=null){MIX=v;mixUI()}return MIX},
       state:function(){return {mode:REP.mode,a:REP.a,b:REP.b,on:!!SES,playing:playBtn.classList.contains('st'),k:SES?SES.k:-1,
         ps:SES?SES.ps.map(function(p){return {t0:p.t0,dur:p.dur,a:p.o.a,b:p.o.b,rev:p.o.rev,semis:p.o.semis}}):[],frac:playFrac,playT:playT,now:ctx?ctx.currentTime:0,
-        live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}}
+        live:SES?SES.live.length:0,fx:active.length,temp:TEMP,multi:multi}}},
+    slices:{set:function(o){slFresh();if(o.n){SL.n=o.n;slIdent()}if(o.mode)SL.mode=o.mode;if(o.order)SL.order=o.order.slice();if(o.rev)SL.rev=o.rev.slice();slChanged()},
+      state:function(){slFresh();return {n:SL.n,order:SL.order.slice(),rev:SL.rev.slice(),mode:SL.mode,on:slOn(),key:slKey('pre')+slKey('post')}},
+      dice:slDice,post:postGet,ready:postReady,raw:function(){return PB.r},fxRandom:function(){fxRandom(Math.random);return active.map(function(a){return a.id})},
+      octave:function(){return octBuf(srcBuf())},src:function(){return srcBuf()}}
   }};
   if(saRun){var saS=document.createElement('script');saS.src='tests/'+saRun[1]+'.page.js';document.head.appendChild(saS)}
 }
