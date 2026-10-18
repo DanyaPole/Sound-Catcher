@@ -39,8 +39,14 @@ function certFor(ips){
 /* только то, что лежит на сайте: страница, значки и манифест */
 const PUBLIC={'/index.html':'text/html; charset=utf-8','/icon.svg':'image/svg+xml','/icon-192.png':'image/png','/icon-512.png':'image/png',
   '/apple-touch-icon.png':'image/png','/manifest.json':'application/manifest+json'};
-function handler(req,res){
+/* строка в окно сервера на каждый запрос: время, http/https, метод, путь, код ответа. Адреса клиентов не пишем */
+function logReq(proto,req,res,u){
+  res.on('finish',()=>{const d=new Date(),p=n=>String(n).padStart(2,'0');
+    console.log('  '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())+'  '+proto.padEnd(5)+' '+req.method+' '+u+' → '+res.statusCode)});
+}
+function handler(req,res,proto){
   let u=req.url.split('?')[0].split('#')[0];
+  logReq(proto||'http',req,res,u);
   if(u==='/')u='/index.html';
   if(PUBLIC[u]){
     res.writeHead(200,{'Content-Type':PUBLIC[u],'Cache-Control':'no-store'});
@@ -55,7 +61,7 @@ function listen(server,port,tries,cb){
 }
 (function main(){
   const lan=lanAddrs(),ips=lan.map(a=>a.ip);
-  const hs=http.createServer(handler);
+  const hs=http.createServer((rq,rs)=>handler(rq,rs,'http'));
   listen(hs,PORT,10,hp=>{
     const cert=certFor(ips);
     const line='─'.repeat(62);
@@ -77,7 +83,7 @@ function listen(server,port,tries,cb){
       if(arg('--open'))spawn('cmd',['/c','start','','http://localhost:'+hp+'/?fresh'],{stdio:'ignore',detached:true}).unref();
     };
     if(!cert)return done(0);
-    const ss=https.createServer(cert,handler);
+    const ss=https.createServer(cert,(rq,rs)=>handler(rq,rs,'https'));
     listen(ss,hp===8080?8443:hp+363,10,done);
   });
 })();
