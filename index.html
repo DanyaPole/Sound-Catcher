@@ -208,7 +208,8 @@ body.ready #demoBtn{display:none}
 .t .pc{position:absolute;top:-10px;right:-8px;min-width:36px;padding:1px 5px;border-radius:999px;background:var(--ink);color:#fff;font-size:11px;line-height:1.4;border:2px solid #fff;transform:scale(0);transition:transform .3s cubic-bezier(.34,1.7,.6,1);pointer-events:none;z-index:1}
 .t.sel .pc{transform:scale(1)}
 .t[data-id=orig] .pc{display:none}
-.t .nm{display:none;position:absolute;top:100%;left:-5px;right:-5px;margin-top:5px;font-size:12px;line-height:1.1;font-weight:800;color:var(--ink);text-align:center;overflow-wrap:anywhere;pointer-events:none}
+.t .nm{display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% + 10px);margin-top:8px;padding:1px 5px;border-radius:8px;background:rgba(255,255,255,.72);font-size:12px;line-height:1.1;font-weight:800;color:var(--ink);text-align:center;overflow-wrap:anywhere;pointer-events:none}
+body.world .t .nm{background:rgba(24,16,58,.72)}
 body.labels .grid{row-gap:38px;margin-bottom:24px}
 body.labels .t .nm{display:block}
 #fxtip{position:fixed;z-index:12;max-width:min(80vw,260px);padding:6px 12px;border-radius:12px;background:var(--ink);color:#fff;border:2px solid #fff;font-size:15px;font-weight:700;line-height:1.25;text-align:center;pointer-events:none;box-shadow:0 3px 0 rgba(0,0,0,.2)}
@@ -217,6 +218,11 @@ body.world #fxtip{background:#f3eeff;color:#1a1033;border-color:#1a1033}
 .t{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* выключено — тусклая и серая, включено — яркая, с рамкой и точками уровня ●●○ */
 .t:not(.sel){filter:saturate(.25) brightness(1.08);opacity:.6}
+/* с подписями приглушаем саму плитку, а не весь элемент: подпись остаётся непрозрачной (контраст ≥ 4,5:1) */
+body.labels .t:not(.sel){opacity:1;filter:none;background:linear-gradient(rgba(240,238,246,.6),rgba(240,238,246,.6)),var(--c);box-shadow:0 6px 0 color-mix(in srgb,var(--d) 35%,#c9c4d6)}
+body.labels .t:not(.sel):active{box-shadow:0 2px 0 color-mix(in srgb,var(--d) 35%,#c9c4d6)}
+body.labels .t:not(.sel) .sz{opacity:.6;filter:saturate(.25)}
+body.world.labels .t:not(.sel){background:linear-gradient(rgba(24,16,58,.5),rgba(24,16,58,.5)),var(--c)}
 .t .lv{position:absolute;left:0;right:0;bottom:5px;display:flex;justify-content:center;gap:3px;pointer-events:none}
 .t .lv i{width:7px;height:7px;border-radius:50%;background:rgba(26,16,51,.18);border:1px solid rgba(255,255,255,.7)}
 .t[data-l="1"] .lv i:nth-child(1),.t[data-l="2"] .lv i:nth-child(-n+2),.t[data-l="3"] .lv i{background:var(--ink)}
@@ -976,8 +982,9 @@ function tipShow(b,txt){
 function nameTip(b,txt){
   b.addEventListener('pointerenter',function(e){if(e.pointerType!=='mouse')return;clearTimeout(tipT);tipT=setTimeout(function(){tipShow(b,txt)},400)});
   b.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse')tipOff()});
-  b.addEventListener('focus',function(){var kb=false;try{kb=b.matches(':focus-visible')}catch(e){}if(kb)tipShow(b,txt)});
+  b.addEventListener('focus',function(){lpFired=false;var kb=false;try{kb=b.matches(':focus-visible')}catch(e){}if(kb)tipShow(b,txt)});
   b.addEventListener('blur',tipOff);
+  b.addEventListener('keydown',function(){lpFired=false});
   b.addEventListener('pointerdown',function(e){
     lpFired=false;tipOff();
     if(e.pointerType==='mouse')return;
@@ -985,7 +992,7 @@ function nameTip(b,txt){
     lpT=setTimeout(function(){lpFired=true;vib(12);tipShow(b,txt)},500);
   });
   b.addEventListener('pointermove',function(e){if(lpT&&!lpFired&&Math.abs(e.clientX-lpX)+Math.abs(e.clientY-lpY)>10){clearTimeout(lpT);lpT=0}});
-  function up(){clearTimeout(lpT);lpT=0;if(lpFired){clearTimeout(tipH);tipH=setTimeout(tipOff,1200)}}
+  function up(){clearTimeout(lpT);lpT=0;if(lpFired){clearTimeout(tipH);tipH=setTimeout(tipOff,2000)}}
   b.addEventListener('pointerup',up);
   b.addEventListener('pointercancel',function(){up();lpFired=false});
   b.addEventListener('contextmenu',function(e){e.preventDefault()});
@@ -994,7 +1001,7 @@ EFFECTS.forEach(function(f){
   var b=document.createElement('button');
   b.className='t';b.setAttribute('data-id',f.id);b.setAttribute('data-l','0');b.setAttribute('aria-label',f.n);
   b.innerHTML='<span class="sz"><span class="em">'+f.e+'</span></span><span class="pc"></span><span class="lv"><i></i><i></i><i></i></span><span class="nm" aria-hidden="true">'+f.n+'</span>';
-  b.onclick=function(){tipOff();if(lpFired){lpFired=false;return}tap(f.id,b)};
+  b.onclick=function(){if(lpFired){lpFired=false;return}tipOff();tap(f.id,b)};
   nameTip(b,f.n);
   grid.appendChild(b);tiles[f.id]=b;
 });

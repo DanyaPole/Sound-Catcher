@@ -23,6 +23,7 @@
     function pe(el,type,o){o=o||{};el.dispatchEvent(new W.PointerEvent(type,{bubbles:type!=='pointerenter'&&type!=='pointerleave',cancelable:true,pointerType:o.pt||'touch',isPrimary:true,clientX:o.x||0,clientY:o.y||0}))}
     function vis(el){return !!el&&!el.hidden&&W.getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().width>0}
     var lvl=function(el){return +el.getAttribute('data-l')};
+    function tipOffAll(){D.dispatchEvent(new W.KeyboardEvent('keydown',{key:'Escape',bubbles:true}))}
     function esc(){D.dispatchEvent(new W.KeyboardEvent('keydown',{key:'Escape',bubbles:true}))}
 
     check('24 плитки, у каждой название в aria-label',tiles.length===24&&tiles.every(function(t){return (t.getAttribute('aria-label')||'').length>1}),tiles.length+' плиток');
@@ -57,7 +58,9 @@
     pe(cave,'pointerup',{x:40,y:400});cave.click();await sleep(100);
     check('долгое нажатие: эффект не выбран',lvl(cave)===was,'data-l='+lvl(cave));
     await sleep(1500);
-    check('подсказка гаснет после отпускания',!vis(tip));
+    check('после отпускания подсказка ещё видна (1,5 с)',vis(tip));
+    await sleep(800);
+    check('подсказка гаснет через 2 с после отпускания',!vis(tip));
     /* следующий обычный тап работает (клик не проглочен насовсем) */
     pe(cave,'pointerdown',{x:40,y:400});await sleep(50);pe(cave,'pointerup',{x:40,y:400});cave.click();await sleep(100);
     check('после долгого нажатия обычный тап выбирает',lvl(cave)===1,'data-l='+lvl(cave));
@@ -77,6 +80,16 @@
     check('aria-label несёт силу эффекта (Замок 25%)',/^Замок/.test(cave.getAttribute('aria-label'))&&/25%/.test(cave.getAttribute('aria-label')),cave.getAttribute('aria-label'));
     check('выключенная плитка — только название',echo.getAttribute('aria-label')==='Эхо',echo.getAttribute('aria-label'));
     check('aria-label «Как было» — название',/Как было/.test(oal),oal);
+
+    /* флаг долгого нажатия не залипает, если click не пришёл: сброс по keydown и по focus */
+    var warp=D.querySelector('.t[data-id=warp]'),high=D.querySelector('.t[data-id=high]');
+    pe(warp,'pointerdown',{x:40,y:400});await sleep(700);pe(warp,'pointerup',{x:40,y:400});/* click не присылаем */
+    warp.dispatchEvent(new W.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));warp.click();await sleep(100);
+    check('залипание: keydown сбрасывает флаг, клик выбирает',lvl(warp)===1,'data-l='+lvl(warp));
+    pe(high,'pointerdown',{x:40,y:400});await sleep(700);pe(high,'pointerup',{x:40,y:400});/* click не присылаем */
+    echo.focus();echo.blur();high.focus();high.click();await sleep(100);
+    check('залипание: focus сбрасывает флаг, клик выбирает',lvl(high)===1,'data-l='+lvl(high));
+    tipOffAll();
 
     /* подписи по умолчанию выключены */
     var nms=D.querySelectorAll('#grid .t .nm');
@@ -107,6 +120,7 @@
     var ok=Array.prototype.every.call(nms,function(n){var r=n.getBoundingClientRect(),t=n.parentNode.getBoundingClientRect();return vis(n)&&n.textContent.length>1&&r.left>=0&&r.right<=375&&Math.abs((r.left+r.right)/2-(t.left+t.right)/2)<2});
     check('подписи: у всех 24 плиток видны, внутри экрана',ok);
     check('подписи: не наезжают на следующий ряд',(function(){var bad=0;tiles.forEach(function(t,k){var n=t.querySelector('.nm').getBoundingClientRect(),nx=tiles[k+4];if(nx&&n.bottom>nx.getBoundingClientRect().top+0.5)bad++});return bad===0})());
+    check('подписи непрозрачны (у выключенных плиток тоже): opacity предков = 1',Array.prototype.every.call(nms,function(n){var o=1,e=n;while(e&&e.nodeType===1){o*=parseFloat(W.getComputedStyle(e).opacity);e=e.parentNode}return o===1}));
     check('нет горизонтальной прокрутки',D.documentElement.scrollWidth<=375,String(D.documentElement.scrollWidth));
 
     /* Esc гасит подсказку */
