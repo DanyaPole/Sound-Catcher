@@ -110,7 +110,9 @@
     T.fx([]);P.stop();
 
     /* 9. 🎲 Сюрприз */
-    $('surprise').click();await sleep(200);
+    $('surprise').click();
+    /* нарезка «после эффектов» сначала готовит звук — ждём начала игры до 2 с */
+    for(var w9=0;w9<20&&!P.state().on;w9++)await sleep(100);await sleep(100);
     var s9=P.state();
     check('P20 🎲 Сюрприз: включены эффекты и играет',s9.fx>=1&&s9.on&&/Сюрприз/.test($('msg').textContent),$('msg').textContent);
     var seen={};for(i=0;i<12;i++){P.surprise();seen[D.querySelectorAll('#grid .t.sel').length+':'+P.state().fx]=1}

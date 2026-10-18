@@ -1460,9 +1460,10 @@ function play(from){
   stopPlay();
   /* нарезка после эффектов: сначала звук обрабатывается и режется целиком (доли секунды), потом играет */
   if(!AB&&slAfter()&&!postReady()){
-    var tk=PEND=Date.now()+Math.random();
+    var tk=PEND=Date.now()+Math.random(),was=msg.textContent;
     say('✂️ Режу звук…');
-    postGet().then(function(){if(PEND===tk)play(from)}).catch(function(){if(PEND===tk){PEND=0;say('Не вышло порезать 😕')}});
+    /* порезал — вернуть прежнюю подсказку (например, что выбрал 🎲) */
+    postGet().then(function(){if(PEND===tk){if(msg.textContent==='✂️ Режу звук…')say(was);play(from)}}).catch(function(){if(PEND===tk){PEND=0;say('Не вышло порезать 😕')}});
     return;
   }
   var c=ac();silentOn();
@@ -1804,7 +1805,9 @@ function cleanAudio(b){
   }
   var peak=0;
   for(c=0;c<ch;c++){var o=out.getChannelData(c),y2=ys[c];for(i=0;i<L;i++){o[i]=y2[i]*gs[i];var a2=o[i]<0?-o[i]:o[i];if(a2>peak)peak=a2}}
-  var k=peak>0.001?Math.min(0.9/peak,8):1;
+  /* громкость как у исходной записи, а не «до 0,9»: чистка не должна делать звук громче (и упирать его в потолок) */
+  var rp=0;for(c=0;c<ch;c++){var xr=b.getChannelData(c);for(i=0;i<L;i++){var ar=xr[i]<0?-xr[i]:xr[i];if(ar>rp)rp=ar}}
+  var k=peak>0.001?Math.min(rp/peak,1.5):1;
   for(c=0;c<ch;c++){var o2=out.getChannelData(c);for(i=0;i<L;i++)o2[i]*=k}
   return out;
 }
@@ -1813,12 +1816,28 @@ function applyBuf(){
   if(REP.g!==gen){REP.g=gen;REP.a=0;REP.b=1}   /* новый звук — снова весь, без кусочка */
   makePeaks();cache={key:'',blob:null};view=null;viewBusy='';drawWave(0);
 }
+/* «Чистый звук» включается и выключается; правки нот переносятся на те же ноты в новом звуке. Возвращает, сколько правок не нашли */
 function cleanSet(on,quiet){
-  if(!rawBuf||on===cleanOn)return;
+  if(!rawBuf||on===cleanOn)return 0;
+  var old=NE.g===gen&&NE.c===(cleanOn?1:0)&&NE.runs&&Object.keys(NE.edits).length?{runs:NE.runs,edits:NE.edits}:null;
   stopPlay();cleanOn=on;
   var ch=$('chipClean');ch.classList.toggle('on',cleanOn);ch.setAttribute('aria-checked',cleanOn?'true':'false');
-  applyBuf();needView();
-  if(!quiet)say(cleanOn?'Убрали шипение и шум ✨ Слышишь разницу?':'Вернули как было 🎤');
+  applyBuf();
+  var lost=old?noteCarry(old):0;
+  needView();
+  if(!quiet)say((cleanOn?'Убрали шипение и шум ✨ Слышишь разницу?':'Вернули как было 🎤')+(lost?' · 🎼 '+lost+' '+(lost===1?'правку нот':'правки нот')+' не нашёл — ↶ вернёт':''));
+  return lost;
+}
+/* правка ноты переезжает на ноту в новом звуке, которая больше всего совпадает с ней по времени (и по высоте ±1) */
+function noteCarry(old){
+  var runs=noteRuns(),lost=0,ed={};
+  Object.keys(old.edits).forEach(function(i){
+    var r=old.runs[i],v=old.edits[i],best=-1,bo=0;if(!v||!r)return;
+    runs.forEach(function(q,j){var ov=Math.min(r.e,q.e)-Math.max(r.s,q.s)+1;if(ov>bo&&Math.abs(q.m-r.m)<=1&&ed[j]==null){bo=ov;best=j}});
+    if(best>=0)ed[best]=v;else lost++;
+  });
+  NE.edits=ed;noteChanged();
+  return lost;
 }
 $('chipClean').onclick=function(){
   if(!rawBuf)return;

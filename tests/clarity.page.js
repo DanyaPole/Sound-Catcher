@@ -117,6 +117,25 @@
     check('M4 тишина дольше 1,5 с — «очень тихо», голос — снова хорошо, почти потолок — «очень громко»',j1===''&&j2==='quiet'&&j3===''&&j4==='loud',[j1,j2,j3,j4].join(','));
     check('M5 тексты подсказок понятны',/громче или поднеси/.test(R.say.quiet)&&/отодвинь/.test(R.say.loud),'');
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
+
+    /* ---- шаг 6: «Чистый звук» ---- */
+    $('demoBtn').click();await sleep(300);P.stop();
+    var N=T.notes,runs=N.runs();N.set(1,2);var k0=N.key();
+    $('chipClean').click();await sleep(300);P.stop();
+    check('C1 «Чистый звук» не стирает правку ноты (Соль +2 осталась)',N.key()!==''&&N.edits()[1]===2&&/Чистый/.test(chips().join('|')),k0+' → '+N.key()+' · '+$('msg').textContent);
+    $('chipClean').click();await sleep(300);P.stop();
+    check('C2 и обратно — правка на месте',N.edits()[1]===2,JSON.stringify(N.edits()));
+    /* тихий голос + сильный гул 50 Гц + шум: раньше «чистка» выравнивала до 0,9 (×4) */
+    var L2=Math.round(sr*1.2),Z=new Float32Array(L2),seed=1;
+    for(i=0;i<L2;i++){seed=(seed*16807)%2147483647;var on=i>sr*0.2&&i<sr*1.0?1:0;Z[i]=0.2*on*Math.sin(2*Math.PI*300*i/sr)+0.3*Math.sin(2*Math.PI*50*i/sr)+0.02*(seed/1073741823.5-1)}
+    T.load([Z],sr);T.ui();await sleep(200);
+    function pkOf(b){var d=b.getChannelData(0),m=0;for(var q=0;q<d.length;q++)m=Math.max(m,Math.abs(d[q]));return m}
+    var p0=pkOf(T.slices.src());
+    $('chipClean').click();await sleep(400);P.stop();
+    var p1=pkOf(T.slices.src());
+    check('C3 «Чистый звук» не громче исходной записи (раньше — до 0,9)',p1<=p0*1.001&&p1>0.05,'пик '+p0.toFixed(3)+' → '+p1.toFixed(3));
+    $('chipClean').click();await sleep(200);P.stop();
+    T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
     await report({ok:true,results:results,png:W.__png});
