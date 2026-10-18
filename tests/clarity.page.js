@@ -80,6 +80,24 @@
     T.load([A],sr);await sleep(400);
     check('R11 новый звук — история чистая',C.his().past===0&&$('undo').disabled,JSON.stringify(C.his()));
     T.fx([]);T.ui();await sleep(400);
+
+    /* ---- шаг 4: демо и подписи 🎲 ---- */
+    var db=$('demoBtn'),dr=db.getBoundingClientRect(),rr=$('rec').getBoundingClientRect();
+    check('D1 на главном экране под кнопкой записи — «🐦 Попробовать без микрофона»',dr.height>=44&&dr.top>rr.bottom&&dr.top-rr.bottom<200&&/без микрофона/.test(db.textContent),Math.round(dr.top-rr.bottom)+' px ниже записи');
+    var g0=T.slices.src();db.click();await sleep(300);P.stop();
+    check('D2 демо загружает птичку (2,4 с) и показывает результат',T.slices.src()!==g0&&Math.abs(T.slices.src().duration-2.4)<0.01&&$('fx').classList.contains('show'),T.slices.src().duration.toFixed(2)+' с');
+    var sb=$('surprise');
+    check('D3 у 🎲 в плеере видна подпись «сюрприз», а в описании — что запись не меняется',/сюрприз/.test(sb.textContent)&&/запись не меняется/.test(sb.getAttribute('aria-label'))&&sb.getBoundingClientRect().height>=44,sb.textContent);
+    sb.click();await sleep(200);P.stop();
+    check('D4 после 🎲 сказано: «запись та же, ↶ вернёт»',/запись та же, ↶ вернёт/.test($('msg').textContent),$('msg').textContent);
+    check('D5 кнопки 🎲 подписаны, что именно меняют',/Случайные эффекты/.test($('fxDice').textContent)&&/сухо–мокро и температура/.test($('toolDice').textContent),'');
+    check('D6 подсказка: что хранится в «Мои звуки» и как сохранить с эффектами',/без эффектов/.test($('saveTip').textContent)&&/📤/.test($('saveTip').textContent),'');
+    $('gate').classList.remove('hide');await sleep(50);
+    var gd=$('gateDemo'),gr=gd.getBoundingClientRect();
+    check('D7 и на экране «Разреши микрофон» есть «Попробовать без микрофона»',gr.height>=44&&gr.bottom<=812,Math.round(gr.top)+'–'+Math.round(gr.bottom)+' px');
+    gd.click();await sleep(300);P.stop();
+    check('D8 оттуда сразу птичка, экран микрофона закрыт',$('gate').classList.contains('hide')&&Math.abs(T.slices.src().duration-2.4)<0.01,'');
+    T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
     await report({ok:true,results:results,png:W.__png});
