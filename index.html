@@ -1721,21 +1721,21 @@ function setTone(ls,hs,t,now){
   if(now===undefined){ls.gain.value=lg;hs.gain.value=hg}
   else{ls.gain.setTargetAtTime(lg,now,0.03);hs.gain.setTargetAtTime(hg,now,0.03)}
 }
-/* выход: температура → громкость → «потолок», чтобы не трещало */
+/* выход: температура → громкость → мягкий потолок, чтобы не трещало.
+   Компрессора нет: DynamicsCompressor в Chrome сжимает звук и ниже порога (хвосты нот громче, звук «сплющен»).
+   Записи выровнены до 0,7, а потолок до 0,85 не меняет звук вовсе — прижимает только то, что эффекты или громкость подняли выше */
 function outStage(c,dest,vol,temp){
   var ls=c.createBiquadFilter();ls.type='lowshelf';ls.frequency.value=250;
   var hs=c.createBiquadFilter();hs.type='highshelf';hs.frequency.value=2800;
   setTone(ls,hs,temp||0);
   var vg=c.createGain();vg.gain.value=vol;
-  var lm=c.createDynamicsCompressor();
-  lm.threshold.value=-6;lm.knee.value=4;lm.ratio.value=20;lm.attack.value=0.001;lm.release.value=0.12;
   /* мягкий потолок: всё громче 0,85 плавно прижимается и никогда не выходит за 1 */
   var pre=c.createGain();pre.gain.value=0.5;
   var sc=c.createWaveShaper(),n=4097,cv=new Float32Array(n),i;
   for(i=0;i<n;i++){var v=(i/(n-1)*2-1)*2,a=Math.abs(v),o=a<0.85?a:0.85+0.14*Math.tanh((a-0.85)/0.14);cv[i]=v<0?-o:o}
   sc.curve=cv;
-  ls.connect(hs);hs.connect(vg);vg.connect(lm);lm.connect(pre);pre.connect(sc);sc.connect(dest);
-  return {i:ls,ls:ls,hs:hs,vg:vg,nodes:[ls,hs,vg,lm,pre,sc]};
+  ls.connect(hs);hs.connect(vg);vg.connect(pre);pre.connect(sc);sc.connect(dest);
+  return {i:ls,ls:ls,hs:hs,vg:vg,nodes:[ls,hs,vg,pre,sc]};
 }
 var volEl=$('vol');
 volEl.oninput=function(){

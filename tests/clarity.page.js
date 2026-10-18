@@ -135,6 +135,18 @@
     var p1=pkOf(T.slices.src());
     check('C3 «Чистый звук» не громче исходной записи (раньше — до 0,9)',p1<=p0*1.001&&p1>0.05,'пик '+p0.toFixed(3)+' → '+p1.toFixed(3));
     $('chipClean').click();await sleep(200);P.stop();
+    /* выход не сплющивает звук: у птички громкое начало ноты и тихий хвост остаются в той же пропорции */
+    $('demoBtn').click();await sleep(300);P.stop();
+    var bs=T.slices.src(),bo=await T.render();
+    function seg(b,a,e){var d=b.getChannelData(0),r=b.sampleRate,q,s2=0,n=0;for(q=Math.round(a*r);q<Math.round(e*r);q++){s2+=d[q]*d[q];n++}return Math.sqrt(s2/n)}
+    /* у компрессора есть своя задержка — сначала находим её по совпадению волны (0–20 мс) */
+    var ds=bs.getChannelData(0),dO=bo.getChannelData(0),rate=bs.sampleRate,lag=0,bc=-1e9,q,z;
+    for(z=0;z<Math.round(rate*0.02);z++){var cc=0;for(q=Math.round(rate*0.05);q<Math.round(rate*0.15);q++)cc+=ds[q]*dO[q+z];if(cc>bc){bc=cc;lag=z}}
+    var lt=lag/rate,ri=seg(bs,0.02,0.2)/seg(bs,0.2,0.27),ro=seg(bo,0.02+lt,0.2+lt)/seg(bo,0.2+lt,0.27+lt),dB=20*Math.log10(ro/ri);
+    check('X1 выход не сплющивает: начало и хвост ноты в той же пропорции (±1 дБ)',Math.abs(dB)<1,'задержка '+(lt*1000).toFixed(1)+' мс; было '+ri.toFixed(2)+', на выходе '+ro.toFixed(2)+' ('+dB.toFixed(1)+' дБ)');
+    T.fx([['rock',3],['echo',3]]);T.out(2,0);
+    var hot=await T.render(),hp=0,hd=hot.getChannelData(0);for(i=0;i<hd.length;i++)hp=Math.max(hp,Math.abs(hd[i]));
+    check('X2 громкость 200% + Рок + Эхо: всё равно не выше 1 (мягкий потолок)',hp<=1&&hp>0.85,'пик '+hp.toFixed(3));
     T.load([A],sr);T.fx([]);P.mix(1);T.out(1,0);T.ui();await sleep(400);
     W.__png=null;
 
