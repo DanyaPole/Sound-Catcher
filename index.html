@@ -750,8 +750,10 @@ function ac(){
 function vib(n){try{if(navigator.vibrate)navigator.vibrate(n)}catch(e){}}
 function bounce(el){el.classList.remove('bounce');void el.offsetWidth;el.classList.add('bounce')}
 function say(t){msg.textContent=t}
+/* искры от касания: общий ограничитель вспышек (не больше FL.max в секунду вместе с кругами и всплесками эх); касание и звук от этого не меняются */
 function burst(el){
   try{
+    if(!flashGate(performance.now(),'burst'))return;
     var r=el.getBoundingClientRect(),icons=['🎵','🎶','✨','⭐'];
     for(var i=0;i<6;i++){
       var s=document.createElement('span');
