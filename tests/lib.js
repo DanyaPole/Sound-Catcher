@@ -22,10 +22,11 @@ function serve(){
     }).listen(0,'127.0.0.1',()=>res({server:s,port:s.address().port,report:got}));
   });
 }
+/* тесты запускают Chrome без звука из колонок (--mute-audio): Web Audio работает, часы идут, слышно только если задать ZV_SOUND=1 */
 function chrome(url,extra){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sa-chrome-'));
   const p=spawn(CHROME,['--headless=new','--user-data-dir='+dir,'--no-first-run','--no-default-browser-check','--disable-gpu',
-    '--autoplay-policy=no-user-gesture-required'].concat(extra||[],[url]),{stdio:'ignore'});
+    '--autoplay-policy=no-user-gesture-required'].concat(process.env.ZV_SOUND?[]:['--mute-audio'],extra||[],[url]),{stdio:'ignore'});
   return {proc:p,stop(){try{p.kill()}catch(e){}setTimeout(()=>{try{fs.rmSync(dir,{recursive:true,force:true})}catch(e){}},800)}};
 }
 /* открыть страницу ?run=<имя>, дождаться отчёта (до timeout мс) */
